@@ -149,12 +149,14 @@
                 <div class="flex gap-2 w-full md:w-auto">
                     <input type="text" id="host-quiz-code" placeholder="Код на урок..." class="flex-1 md:w-64 px-4 py-2 bg-slate-50 border rounded-xl text-sm outline-none focus:border-indigo-500">
                     <button onclick="document.getElementById('file-input-host').click()" title="Зареди код от файл" class="p-2 bg-slate-100 rounded-xl text-slate-400 hover:text-indigo-600 transition-all border border-transparent hover:border-indigo-200"><i data-lucide="file-up"></i></button>
-                    <button onclick="setupLiveHostQuiz()" class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold text-sm shadow-md hover:bg-indigo-700 transition-all">ЗАРЕДИ</button>
+                    <button id="btn-host-load" onclick="setupLiveHostQuiz()" class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold text-sm shadow-md hover:bg-indigo-700 transition-all">ЗАРЕДИ</button>
                     <input type="file" id="file-input-host" class="hidden" accept=".txt" onchange="handleFileImport(event, 'host-quiz-code')">
                 </div>
             </div>
             <div id="host-player-area" class="hidden space-y-6">
-                <div class="video-container" id="host-video"></div>
+                <div class="video-container" id="host-video-container">
+                    <div id="host-video"></div>
+                </div>
                 <div class="bg-white p-6 rounded-3xl border flex justify-between items-center">
                     <div class="text-3xl font-mono font-bold text-indigo-600" id="host-timer">00:00</div>
                     <div id="host-status" class="text-xs font-black text-slate-400 uppercase tracking-widest animate-pulse">Готовност за старт</div>
@@ -236,7 +238,7 @@
 
     <div id="modal-export" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-[100]">
         <div class="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl text-center animate-pop">
-            <h2 class="text-2xl font-bold mb-4">Кодът е готов</h2>
+            <h2 class="text-2xl font-bold mb-4 text-slate-800">Кодът е готов</h2>
             <textarea id="export-textarea" readonly class="w-full h-32 p-4 bg-slate-50 border rounded-2xl text-[10px] font-mono mb-6 outline-none"></textarea>
             <div class="grid grid-cols-2 gap-4">
                 <button onclick="copyExportCode()" class="py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg"><i data-lucide="copy" class="inline w-4 h-4 mr-1"></i> Копирай</button>
@@ -267,14 +269,12 @@
         let questions = [], currentQuiz = null, quizHash = "";
         let currentQIndex = -1, scoreCount = 0, studentNameValue = "";
         let sessionID = "", liveActiveQIdx = -1;
+        let isYTReady = false;
 
-        // --- СТАБИЛНА ИНИЦИАЛИЗАЦИЯ НА YOUTUBE API ---
+        // --- YouTube API Helper ---
         function getSafeOrigin() {
             let origin = window.location.origin;
-            if (!origin || origin === 'null') {
-                return '*';
-            }
-            return origin;
+            return (!origin || origin === 'null') ? '*' : origin;
         }
 
         function extractID(u) {
@@ -283,17 +283,24 @@
             return (m && m[1].length === 11) ? m[1] : null;
         }
 
+        window.onYouTubeIframeAPIReady = function() {
+            isYTReady = true;
+            console.log("YouTube API is ready");
+        };
+
         window.switchScreen = function(name) {
             document.querySelectorAll('#app > div').forEach(div => div.classList.add('hidden'));
             const target = document.getElementById('screen-' + name);
             if (target) target.classList.remove('hidden');
             
+            // Пълно почистване на плейъри при смяна на екран
             if (player && player.destroy) try { player.destroy(); } catch(e) {}
             if (solvePlayer && solvePlayer.destroy) try { solvePlayer.destroy(); } catch(e) {}
             if (hostPlayer && hostPlayer.destroy) try { hostPlayer.destroy(); } catch(e) {}
-            clearInterval(timeMonitor);
             
             player = null; solvePlayer = null; hostPlayer = null;
+            clearInterval(timeMonitor);
+            
             try { lucide.createIcons(); } catch(e) {}
         };
 
@@ -315,19 +322,20 @@
                 scoreCount = 0; currentQIndex = -1;
                 document.getElementById('solve-progress').innerText = `Прогрес: 0 / ${currentQuiz.q.length}`;
 
-                // ИЗЧАКВАНЕ ЗА API
-                if (!window.YT || !window.YT.Player) {
-                    await new Promise(r => setTimeout(r, 500));
+                // Изчакване на API
+                if (!isYTReady) {
+                    await new Promise(r => {
+                        const check = setInterval(() => {
+                            if (isYTReady) { clearInterval(check); r(); }
+                        }, 100);
+                    });
                 }
 
                 solvePlayer = new YT.Player('solve-player', {
                     videoId: currentQuiz.v,
                     playerVars: { 
-                        'autoplay': 1, 
-                        'controls': 1, 
-                        'origin': getSafeOrigin(),
-                        'rel': 0,
-                        'enablejsapi': 1
+                        'autoplay': 1, 'controls': 1, 'origin': getSafeOrigin(),
+                        'rel': 0, 'enablejsapi': 1
                     },
                     events: {
                         'onReady': (e) => e.target.playVideo(),
@@ -345,8 +353,7 @@
                                     if (solvePlayer.getCurrentTime() >= solvePlayer.getDuration() - 1) finishIndQuiz();
                                 }, 500);
                             }
-                        },
-                        'onError': (e) => alert("Грешка при зареждане на видеото от YouTube.")
+                        }
                     }
                 });
             } catch(e) { alert("Грешен код на урок."); }
@@ -363,7 +370,7 @@
 
         window.submitIndAnswer = (idx, correct) => {
             if (idx === correct) scoreCount++;
-            document.getElementById('q-overlay').classList.replace('flex', 'hidden');
+            document.getElementById('q-overlay').classList.replace('hidden', 'flex');
             document.getElementById('solve-progress').innerText = `Прогрес: ${currentQIndex + 1} / ${currentQuiz.q.length}`;
             solvePlayer.playVideo();
         };
@@ -385,10 +392,7 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 document.getElementById('submit-feedback').classList.remove('hidden');
-            } catch(e) { 
-                btn.disabled = false;
-                alert("Проблем при изпращане.");
-            }
+            } catch(e) { btn.disabled = false; alert("Проблем при изпращане."); }
         }
 
         // --- РЕДАКТОР ---
@@ -402,11 +406,7 @@
 
             player = new YT.Player('player', {
                 videoId: id,
-                playerVars: { 
-                    'enablejsapi': 1, 
-                    'origin': getSafeOrigin(), 
-                    'rel': 0 
-                },
+                playerVars: { 'enablejsapi': 1, 'origin': getSafeOrigin(), 'rel': 0 },
                 events: {
                     'onReady': () => {
                         clearInterval(timeMonitor);
@@ -466,31 +466,43 @@
             switchScreen('live-host');
             document.getElementById('host-pin').innerText = `PIN: ${sessionID}`;
             await db.collection('artifacts').doc(mainAppId).collection('public').doc('data').collection('sessions').doc(sessionID).set({
-                activeQ: -1,
-                status: 'waiting',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                activeQ: -1, status: 'waiting', createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
         }
 
-        function setupLiveHostQuiz() {
+        async function setupLiveHostQuiz() {
             const code = document.getElementById('host-quiz-code').value.trim();
+            if (!code) return alert("Въведете код!");
+            
             try {
                 currentQuiz = JSON.parse(decodeURIComponent(escape(atob(code))));
                 document.getElementById('host-player-area').classList.remove('hidden');
-                if (hostPlayer && hostPlayer.destroy) hostPlayer.destroy();
-                hostPlayer = new YT.Player('host-video', {
-                    videoId: currentQuiz.v,
-                    playerVars: { 
-                        'autoplay': 0, 
-                        'controls': 1, 
-                        'origin': getSafeOrigin(),
-                        'rel': 0,
-                        'enablejsapi': 1 
-                    },
-                    events: {
-                        'onStateChange': (e) => { if (e.data === YT.PlayerState.PLAYING) startLiveSync(); }
+                
+                // Изчистване на стар плейър
+                if (hostPlayer && hostPlayer.destroy) try { hostPlayer.destroy(); } catch(e) {}
+                
+                // Малко закъснение, за да сме сигурни, че DOM контейнерът е видим и готов
+                setTimeout(async () => {
+                    if (!isYTReady) {
+                        console.log("Waiting for YT API in Host mode...");
+                        await new Promise(r => {
+                            const check = setInterval(() => { if (isYTReady) { clearInterval(check); r(); } }, 100);
+                        });
                     }
-                });
+
+                    hostPlayer = new YT.Player('host-video', {
+                        videoId: currentQuiz.v,
+                        playerVars: { 
+                            'autoplay': 0, 'controls': 1, 'origin': getSafeOrigin(),
+                            'rel': 0, 'enablejsapi': 1 
+                        },
+                        events: {
+                            'onReady': () => console.log("Host Player Ready"),
+                            'onStateChange': (e) => { if (e.data === YT.PlayerState.PLAYING) startLiveSync(); },
+                            'onError': (e) => alert("YouTube грешка: " + e.data)
+                        }
+                    });
+                }, 200);
             } catch(e) { alert("Грешен код."); }
         }
 
@@ -506,8 +518,7 @@
                     liveActiveQIdx = qIdx;
                     hostPlayer.pauseVideo();
                     await db.collection('artifacts').doc(mainAppId).collection('public').doc('data').collection('sessions').doc(sessionID).update({
-                        activeQ: qIdx,
-                        qData: currentQuiz.q[qIdx]
+                        activeQ: qIdx, qData: currentQuiz.q[qIdx]
                     });
                     document.getElementById('host-status').innerText = "ВЪПРОСЪТ Е АКТИВЕН";
                 }
@@ -526,11 +537,8 @@
               .onSnapshot(docSnap => {
                   const data = docSnap.data();
                   if (!data) return;
-                  if (data.activeQ === -1) {
-                      toggleClientView('waiting');
-                  } else {
-                      showClientQuestion(data.qData);
-                  }
+                  if (data.activeQ === -1) { toggleClientView('waiting'); } 
+                  else { showClientQuestion(data.qData); }
               });
         }
 
@@ -578,10 +586,7 @@
         function copyExportCode() { document.getElementById('export-textarea').select(); document.execCommand('copy'); alert("Копирано!"); }
         function downloadExportFile() {
             const blob = new Blob([document.getElementById('export-textarea').value], { type: 'text/plain' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `quiz-${Date.now()}.txt`;
-            a.click();
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `quiz-${Date.now()}.txt`; a.click();
         }
         function exportQuizCode() {
             if (questions.length === 0) return alert("Няма въпроси!");
@@ -597,13 +602,10 @@
             lucide.createIcons();
             const tag = document.createElement('script');
             tag.src = "https://www.youtube.com/iframe_api";
-            document.head.appendChild(tag);
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         });
-
-        // Тази функция се вика от YouTube API автоматично
-        function onYouTubeIframeAPIReady() {
-            console.log("YouTube API Ready");
-        }
     </script>
 </body>
 </html>
+
