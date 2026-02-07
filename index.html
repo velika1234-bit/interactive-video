@@ -23,6 +23,8 @@
         @keyframes pop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .participant-badge { animation: badgeIn 0.3s ease-out; }
+        @keyframes badgeIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body class="min-h-screen">
@@ -35,7 +37,7 @@
                 <div class="inline-flex p-4 bg-indigo-600 rounded-3xl text-white shadow-xl">
                     <i data-lucide="graduation-cap" class="w-12 h-12"></i>
                 </div>
-                <h1 class="text-5xl font-black tracking-tight text-slate-900">VideoQuiz <span class="text-indigo-600">Ultimate</span></h1>
+                <h1 class="text-5xl font-black tracking-tight text-slate-900 text-balance">VideoQuiz <span class="text-indigo-600">Ultimate</span></h1>
                 <p class="text-slate-500 text-lg max-w-xl mx-auto text-balance">Платформа за интерактивно видео обучение. Изберете режим на работа.</p>
             </div>
 
@@ -153,6 +155,19 @@
                     <input type="file" id="file-input-host" class="hidden" accept=".txt" onchange="handleFileImport(event, 'host-quiz-code')">
                 </div>
             </div>
+
+            <!-- СПИСЪК С УЧАСТНИЦИ (НОВО) -->
+            <div id="host-participants-bar" class="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <i data-lucide="users" class="w-4 h-4 text-indigo-500"></i> Включени ученици: <span id="host-participant-count" class="text-indigo-600 font-black">0</span>
+                    </h4>
+                </div>
+                <div id="host-participant-list" class="flex flex-wrap gap-2">
+                    <p class="text-sm text-slate-400 italic">Очакване на ученици да се включат...</p>
+                </div>
+            </div>
+
             <div id="host-player-area" class="hidden space-y-6">
                 <div class="video-container" id="host-video-container">
                     <div id="host-video"></div>
@@ -170,7 +185,7 @@
                 <div class="w-24 h-24 bg-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-2xl animate-bounce">
                     <i data-lucide="smartphone" class="text-white w-10 h-10"></i>
                 </div>
-                <h2 class="text-3xl font-black">Свързан си!</h2>
+                <h2 class="text-3xl font-black text-slate-900">Свързан си!</h2>
                 <p class="text-slate-400 max-w-xs mx-auto">Очаквайте въпроси на екрана.</p>
             </div>
             <div id="client-question" class="hidden w-full max-w-md bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100 animate-pop">
@@ -223,13 +238,13 @@
     <div id="modal-results" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-[100]">
         <div class="bg-white w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl flex flex-col max-h-[85vh] animate-pop">
             <div class="flex justify-between items-center mb-8">
-                <h2 class="text-3xl font-bold text-slate-800">Резултати</h2>
+                <h2 class="text-3xl font-bold text-slate-800">Преглед на резултати</h2>
                 <button onclick="document.getElementById('modal-results').classList.add('hidden')" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="x"></i></button>
             </div>
             <div id="res-table-container" class="flex-1 overflow-y-auto custom-scrollbar">
                 <div class="p-4 bg-slate-50 rounded-2xl border mb-6">
                     <input type="text" id="res-code-cloud" placeholder="Въведи код за търсене..." class="w-full px-4 py-2 border rounded-xl mb-2 outline-none">
-                    <button onclick="fetchCloudResults()" class="w-full bg-indigo-600 text-white py-2 rounded-xl font-bold">Зареди от Облака</button>
+                    <button onclick="fetchCloudResults()" class="w-full bg-indigo-600 text-white py-2 rounded-xl font-bold hover:bg-indigo-700">Зареди от Облака</button>
                 </div>
                 <div id="res-data-view"></div>
             </div>
@@ -241,14 +256,14 @@
             <h2 class="text-2xl font-bold mb-4 text-slate-800">Кодът е готов</h2>
             <textarea id="export-textarea" readonly class="w-full h-32 p-4 bg-slate-50 border rounded-2xl text-[10px] font-mono mb-6 outline-none"></textarea>
             <div class="grid grid-cols-2 gap-4">
-                <button onclick="copyExportCode()" class="py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg"><i data-lucide="copy" class="inline w-4 h-4 mr-1"></i> Копирай</button>
-                <button onclick="downloadExportFile()" class="py-4 bg-slate-900 text-white rounded-2xl font-bold shadow-lg"><i data-lucide="download" class="inline w-4 h-4 mr-1"></i> Свали</button>
+                <button onclick="copyExportCode()" class="py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:bg-indigo-700"><i data-lucide="copy" class="inline w-4 h-4 mr-1"></i> Копирай</button>
+                <button onclick="downloadExportFile()" class="py-4 bg-slate-900 text-white rounded-2xl font-bold shadow-lg hover:bg-black"><i data-lucide="download" class="inline w-4 h-4 mr-1"></i> Свали</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- FIREBASE CONFIG (ВГРАДЕНА) ---
+        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyA73graFUs8-qj5cT8nYbZJ4wAHIHBVlRI",
             authDomain: "gen-lang-client-0744005778.firebaseapp.com",
@@ -270,6 +285,7 @@
         let currentQIndex = -1, scoreCount = 0, studentNameValue = "";
         let sessionID = "", liveActiveQIdx = -1;
         let isYTReady = false;
+        let unsubscribeParticipants = null;
 
         // --- YouTube API Helper ---
         function getSafeOrigin() {
@@ -285,7 +301,7 @@
 
         window.onYouTubeIframeAPIReady = function() {
             isYTReady = true;
-            console.log("YouTube API is ready");
+            console.log("YouTube API Ready");
         };
 
         window.switchScreen = function(name) {
@@ -293,13 +309,18 @@
             const target = document.getElementById('screen-' + name);
             if (target) target.classList.remove('hidden');
             
-            // Пълно почистване на плейъри при смяна на екран
             if (player && player.destroy) try { player.destroy(); } catch(e) {}
             if (solvePlayer && solvePlayer.destroy) try { solvePlayer.destroy(); } catch(e) {}
             if (hostPlayer && hostPlayer.destroy) try { hostPlayer.destroy(); } catch(e) {}
             
             player = null; solvePlayer = null; hostPlayer = null;
             clearInterval(timeMonitor);
+            
+            // Спиране на слушателя за участници
+            if (unsubscribeParticipants) {
+                unsubscribeParticipants();
+                unsubscribeParticipants = null;
+            }
             
             try { lucide.createIcons(); } catch(e) {}
         };
@@ -322,12 +343,9 @@
                 scoreCount = 0; currentQIndex = -1;
                 document.getElementById('solve-progress').innerText = `Прогрес: 0 / ${currentQuiz.q.length}`;
 
-                // Изчакване на API
                 if (!isYTReady) {
                     await new Promise(r => {
-                        const check = setInterval(() => {
-                            if (isYTReady) { clearInterval(check); r(); }
-                        }, 100);
+                        const check = setInterval(() => { if (isYTReady) { clearInterval(check); r(); } }, 100);
                     });
                 }
 
@@ -363,7 +381,7 @@
             solvePlayer.pauseVideo();
             document.getElementById('overlay-q-text').innerText = q.text;
             document.getElementById('overlay-options').innerHTML = q.options.map((o, i) => `
-                <button onclick="submitIndAnswer(${i}, ${q.correct})" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold hover:border-indigo-500 transition-all text-sm">${o}</button>
+                <button onclick="submitIndAnswer(${i}, ${q.correct})" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold hover:border-indigo-500 transition-all text-sm text-slate-700">${o}</button>
             `).join('');
             document.getElementById('q-overlay').classList.replace('hidden', 'flex');
         }
@@ -401,9 +419,7 @@
             const id = extractID(url);
             if (!id) return alert("Невалиден линк.");
             document.getElementById('editor-view').classList.remove('hidden');
-            
             if (player && player.destroy) player.destroy();
-
             player = new YT.Player('player', {
                 videoId: id,
                 playerVars: { 'enablejsapi': 1, 'origin': getSafeOrigin(), 'rel': 0 },
@@ -427,7 +443,7 @@
             document.getElementById('m-opts').innerHTML = [0, 1, 2].map(i => `
                 <div class="flex gap-2 items-center">
                     <input type="radio" name="m-correct" value="${i}" ${i === 0 ? 'checked' : ''}>
-                    <input type="text" id="m-opt-${i}" placeholder="Опция ${i+1}" class="flex-1 px-3 py-2 bg-slate-50 border rounded-xl text-xs outline-none">
+                    <input type="text" id="m-opt-${i}" placeholder="Опция ${i+1}" class="flex-1 px-3 py-2 bg-slate-50 border rounded-xl text-xs outline-none text-slate-700">
                 </div>
             `).join('');
             document.getElementById('modal-q').classList.remove('hidden');
@@ -465,31 +481,44 @@
             sessionID = Math.floor(1000 + Math.random() * 9000).toString();
             switchScreen('live-host');
             document.getElementById('host-pin').innerText = `PIN: ${sessionID}`;
-            await db.collection('artifacts').doc(mainAppId).collection('public').doc('data').collection('sessions').doc(sessionID).set({
+            
+            const sessionPath = db.collection('artifacts').doc(mainAppId).collection('public').doc('data').collection('sessions').doc(sessionID);
+            
+            await sessionPath.set({
                 activeQ: -1, status: 'waiting', createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // СЛУШАТЕЛ ЗА УЧАСТНИЦИ (НОВО)
+            unsubscribeParticipants = sessionPath.collection('participants').onSnapshot(snap => {
+                const count = snap.size;
+                document.getElementById('host-participant-count').innerText = count;
+                const list = document.getElementById('host-participant-list');
+                
+                if (count === 0) {
+                    list.innerHTML = '<p class="text-sm text-slate-400 italic">Очакване на ученици...</p>';
+                } else {
+                    list.innerHTML = snap.docs.map(doc => `
+                        <div class="participant-badge px-3 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full text-xs font-bold shadow-sm">
+                            ${doc.data().name}
+                        </div>
+                    `).join('');
+                }
             });
         }
 
         async function setupLiveHostQuiz() {
             const code = document.getElementById('host-quiz-code').value.trim();
             if (!code) return alert("Въведете код!");
-            
             try {
                 currentQuiz = JSON.parse(decodeURIComponent(escape(atob(code))));
                 document.getElementById('host-player-area').classList.remove('hidden');
-                
-                // Изчистване на стар плейър
                 if (hostPlayer && hostPlayer.destroy) try { hostPlayer.destroy(); } catch(e) {}
-                
-                // Малко закъснение, за да сме сигурни, че DOM контейнерът е видим и готов
                 setTimeout(async () => {
                     if (!isYTReady) {
-                        console.log("Waiting for YT API in Host mode...");
                         await new Promise(r => {
                             const check = setInterval(() => { if (isYTReady) { clearInterval(check); r(); } }, 100);
                         });
                     }
-
                     hostPlayer = new YT.Player('host-video', {
                         videoId: currentQuiz.v,
                         playerVars: { 
@@ -497,9 +526,7 @@
                             'rel': 0, 'enablejsapi': 1 
                         },
                         events: {
-                            'onReady': () => console.log("Host Player Ready"),
-                            'onStateChange': (e) => { if (e.data === YT.PlayerState.PLAYING) startLiveSync(); },
-                            'onError': (e) => alert("YouTube грешка: " + e.data)
+                            'onStateChange': (e) => { if (e.data === YT.PlayerState.PLAYING) startLiveSync(); }
                         }
                     });
                 }, 200);
@@ -530,16 +557,29 @@
             const pin = document.getElementById('live-pin').value.trim();
             const name = document.getElementById('live-student-name').value.trim();
             if(!pin || !name) return alert("Въведи име и PIN!");
-            await ensureAuth();
+            
+            const user = await ensureAuth();
+            if (!user) return alert("Грешка при автентикация.");
+            
             sessionID = pin;
             switchScreen('live-client');
-            db.collection('artifacts').doc(mainAppId).collection('public').doc('data').collection('sessions').doc(sessionID)
-              .onSnapshot(docSnap => {
-                  const data = docSnap.data();
-                  if (!data) return;
-                  if (data.activeQ === -1) { toggleClientView('waiting'); } 
-                  else { showClientQuestion(data.qData); }
-              });
+
+            const sessionRef = db.collection('artifacts').doc(mainAppId).collection('public').doc('data').collection('sessions').doc(sessionID);
+
+            // ЗАПИСВАНЕ КАТО УЧАСТНИК (НОВО)
+            try {
+                await sessionRef.collection('participants').doc(user.uid).set({
+                    name: name,
+                    joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch(e) { console.error("Could not register participant:", e); }
+
+            sessionRef.onSnapshot(docSnap => {
+                const data = docSnap.data();
+                if (!data) return;
+                if (data.activeQ === -1) { toggleClientView('waiting'); } 
+                else { showClientQuestion(data.qData); }
+            });
         }
 
         function toggleClientView(view) {
@@ -552,7 +592,7 @@
             toggleClientView('question');
             document.getElementById('live-q-text-client').innerText = q.text;
             document.getElementById('live-options-client').innerHTML = q.options.map((o, i) => `
-                <button onclick="submitLiveAnswer(${i}, ${q.correct})" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold hover:border-indigo-500 transition-all text-sm">${o}</button>
+                <button onclick="submitLiveAnswer(${i}, ${q.correct})" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold hover:border-indigo-500 transition-all text-sm text-slate-700">${o}</button>
             `).join('');
         }
 
@@ -571,6 +611,61 @@
             }
             lucide.createIcons();
         };
+
+        // --- ПРЕГЛЕД НА РЕЗУЛТАТИ ---
+        function openResultsModal() {
+            document.getElementById('modal-results').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        async function fetchCloudResults() {
+            const code = document.getElementById('res-code-cloud').value.trim();
+            if (!code) return alert("Моля, въведете код на урок!");
+            const hash = code.substring(0, 16);
+            const dataView = document.getElementById('res-data-view');
+            
+            dataView.innerHTML = '<div class="text-center py-10"><div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div><p class="mt-2 text-slate-400">Търсене в облака...</p></div>';
+            
+            try {
+                await ensureAuth();
+                const snap = await db.collection('artifacts').doc(mainAppId).collection('public').doc('data').collection('homework_results').get();
+                const filtered = snap.docs.map(doc => doc.data()).filter(d => d.quizHash === hash);
+                
+                if (filtered.length === 0) {
+                    dataView.innerHTML = '<p class="text-center text-slate-400 py-10 italic">Няма намерени резултати за този код.</p>';
+                    return;
+                }
+                
+                let html = '<table class="w-full text-left text-sm mt-4 border-collapse animate-pop"><thead class="bg-slate-50 border-b"><tr><th class="p-3 font-bold text-slate-600">Ученик</th><th class="p-3 text-center font-bold text-slate-600">Точки</th><th class="p-3 text-right font-bold text-slate-600">Дата</th></tr></thead><tbody>';
+                
+                filtered.sort((a,b) => (b.timestamp?.seconds||0) - (a.timestamp?.seconds||0)).forEach(d => {
+                    const date = d.timestamp ? new Date(d.timestamp.seconds * 1000).toLocaleString('bg-BG') : '---';
+                    html += `<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 font-bold text-slate-800">${d.student}</td><td class="p-3 text-center font-black text-indigo-600 text-lg">${d.score}/${d.total}</td><td class="p-3 text-right text-[10px] text-slate-400 font-medium">${date}</td></tr>`;
+                });
+                
+                dataView.innerHTML = html + '</tbody></table>';
+            } catch(e) { 
+                console.error("Fetch error:", e);
+                dataView.innerHTML = '<p class="text-center text-rose-500 py-10 italic font-bold">Грешка при четене на данни!</p>'; 
+            }
+        }
+
+        function decodeManualToken() {
+            const token = document.getElementById('res-code-manual').value.trim();
+            if (!token.startsWith("RESULT:")) return alert("Невалиден ръчен код!");
+            const dataView = document.getElementById('res-data-view');
+            try {
+                const data = JSON.parse(decodeURIComponent(escape(atob(token.replace("RESULT:", "")))));
+                dataView.innerHTML = `
+                    <div class="p-6 bg-emerald-50 border border-emerald-100 rounded-3xl mt-4 animate-pop shadow-sm">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-2xl font-black text-slate-800">${data.n}</h3>
+                            <span class="text-3xl font-black text-indigo-600">${data.s} / ${data.t}</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-widest">Код на урок: ${data.h}...</p>
+                    </div>`;
+            } catch(e) { alert("Грешка при декодиране на ръчния код."); }
+        }
 
         // --- HELPERS ---
         function formatTime(s) {
@@ -608,4 +703,3 @@
     </script>
 </body>
 </html>
-
