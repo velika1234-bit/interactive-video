@@ -107,6 +107,7 @@
                     </div>
                     <div class="space-y-3 pt-4">
                         <button onclick="switchScreen('create')" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-black transition-all"><i data-lucide="plus-circle" class="w-4 h-4"></i> НОВ УРОК</button>
+                        <button onclick="openEditorImport()" class="w-full py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-indigo-50 transition-all shadow-sm"><i data-lucide="file-up" class="w-4 h-4"></i> КАЧИ УРОК ЗА РЕДАКЦИЯ</button>
                         <button onclick="openLiveHost()" class="w-full py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-indigo-50 transition-all shadow-sm"><i data-lucide="monitor" class="w-4 h-4"></i> ХОСТВАЙ НА ЖИВО</button>
                         <button onclick="openResultsModal()" class="w-full py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-indigo-50 transition-all shadow-sm"><i data-lucide="bar-chart-3" class="w-4 h-4"></i> РЕЗУЛТАТИ</button>
                     </div>
@@ -309,6 +310,7 @@
                         <input type="number" id="m-time-limit" min="0" step="1" placeholder="например: 20" class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none text-sm font-bold">
                     </div>
                     <div class="flex gap-4 pt-6">
+                        <button onclick="closeQModal()" class="flex-1 py-4 bg-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-200">Отказ</button>
                         <button onclick="document.getElementById('modal-q').classList.add('hidden')" class="flex-1 py-4 bg-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-200">Отказ</button>
                         <button onclick="saveQuestionToEditor()" class="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:bg-indigo-700">Запази</button>
                     </div>
@@ -357,6 +359,7 @@
         let indTimerInterval = null, indTimerTimeout = null;
         let liveTimerInterval = null, liveTimerTimeout = null;
         let indQuestionLocked = false, liveQuestionLocked = false;
+        let editQuestionIndex = -1;
         const EMOJI_OPTIONS = ['😀', '😐', '😢', '😡', '😍'];
 
         function getSafeOrigin() { return (window.location.origin === 'null' || !window.location.origin) ? '*' : window.location.origin; }
@@ -395,6 +398,11 @@
         };
 
         // --- EDITOR ---
+        function openEditorImport() {
+            switchScreen('create');
+            const input = document.getElementById('file-input-editor');
+            if (input) input.click();
+        }
         function parseQuizCode(code) {
             try {
                 const parsed = JSON.parse(decodeURIComponent(escape(atob(code))));
@@ -468,6 +476,17 @@
             e.target.value = '';
         }
 
+        function safePausePlayer() {
+            if (player && player.pauseVideo) {
+                player.pauseVideo();
+            }
+        }
+
+        function openQModal() {
+            safePausePlayer();
+            editQuestionIndex = -1;
+            const currentTime = player && player.getCurrentTime ? player.getCurrentTime() : 0;
+            document.getElementById('m-time').innerText = formatTime(currentTime);
         function openQModal() {
             player.pauseVideo();
             document.getElementById('m-time').innerText = formatTime(player.getCurrentTime());
@@ -477,6 +496,59 @@
             renderQuestionEditorFields();
             document.getElementById('modal-q').classList.remove('hidden');
         }
+
+        function closeQModal() {
+            editQuestionIndex = -1;
+            document.getElementById('modal-q').classList.add('hidden');
+        }
+
+        function openEditQuestion(index) {
+            const q = questions[index];
+            if (!q) return;
+            safePausePlayer();
+            editQuestionIndex = index;
+            document.getElementById('m-time').innerText = formatTime(q.time || 0);
+            document.getElementById('m-type').value = q.type || 'single';
+            document.getElementById('m-text').value = q.text || '';
+            document.getElementById('m-time-limit').value = q.timeLimit ? String(q.timeLimit) : '';
+            renderQuestionEditorFields();
+            const type = q.type || 'single';
+            if (type === 'short') {
+                const answers = Array.isArray(q.correctText) ? q.correctText.join(', ') : '';
+                const input = document.getElementById('m-short-answers');
+                if (input) input.value = answers;
+            } else if (type === 'order') {
+                const orderOptions = Array.isArray(q.order) ? q.order : (q.options || []);
+                orderOptions.forEach((opt, i) => {
+                    const input = document.getElementById('m-order-' + i);
+                    if (input) input.value = opt;
+                });
+            } else if (type === 'truefalse' || type === 'yesno') {
+                const correct = Number.isInteger(q.correct) ? q.correct : 0;
+                const correctInput = document.querySelector(`input[name="m-correct"][value="${correct}"]`);
+                if (correctInput) correctInput.checked = true;
+            } else if (type === 'emoji') {
+                // no extra fields
+            } else {
+                const opts = Array.isArray(q.options) ? q.options : [];
+                opts.forEach((opt, i) => {
+                    const input = document.getElementById('m-opt-' + i);
+                    if (input) input.value = opt;
+                });
+                if (type === 'multi' && Array.isArray(q.correct)) {
+                    q.correct.forEach((idx) => {
+                        const checkbox = document.querySelector(`input[name="m-correct"][value="${idx}"]`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                } else if (type === 'single') {
+                    const correct = Number.isInteger(q.correct) ? q.correct : 0;
+                    const radio = document.querySelector(`input[name="m-correct"][value="${correct}"]`);
+                    if (radio) radio.checked = true;
+                }
+            }
+            document.getElementById('modal-q').classList.remove('hidden');
+        }
+        window.openEditQuestion = openEditQuestion;
 
         function renderQuestionEditorFields() {
             const type = document.getElementById('m-type').value;
@@ -537,10 +609,17 @@
             const limitRaw = document.getElementById('m-time-limit').value.trim();
             const timeLimit = limitRaw ? Math.max(0, parseInt(limitRaw, 10)) : 0;
             if (!text) return alert("Попълни текста на въпроса!");
+            const baseTime = editQuestionIndex >= 0 ? questions[editQuestionIndex].time : Math.floor(player.getCurrentTime());
+            let nextQuestion = null;
             if (type === 'short') {
                 const answersRaw = document.getElementById('m-short-answers').value.trim();
                 const answers = answersRaw.split(',').map(a => a.trim()).filter(Boolean);
                 if (answers.length === 0) return alert("Въведи поне един приемлив отговор.");
+                nextQuestion = { time: baseTime, text, type, correctText: answers, timeLimit };
+            } else if (type === 'truefalse' || type === 'yesno') {
+                const correct = parseInt(document.querySelector('input[name="m-correct"]:checked').value);
+                const options = type === 'yesno' ? ['Да', 'Не'] : ['Вярно', 'Грешно'];
+                nextQuestion = { time: baseTime, text, type, options, correct, timeLimit };
                 questions.push({ time: Math.floor(player.getCurrentTime()), text, type, correctText: answers, timeLimit });
             } else if (type === 'truefalse' || type === 'yesno') {
                 const correct = parseInt(document.querySelector('input[name="m-correct"]:checked').value);
@@ -551,6 +630,9 @@
                     .map(i => document.getElementById('m-order-' + i).value.trim())
                     .filter(Boolean);
                 if (opts.length < 3) return alert("Въведи поне 3 елемента за подреждане.");
+                nextQuestion = { time: baseTime, text, type, options: opts, order: opts, timeLimit };
+            } else if (type === 'emoji') {
+                nextQuestion = { time: baseTime, text, type, options: EMOJI_OPTIONS, noScore: true, timeLimit };
                 questions.push({ time: Math.floor(player.getCurrentTime()), text, type, options: opts, order: opts, timeLimit });
             } else if (type === 'emoji') {
                 questions.push({ time: Math.floor(player.getCurrentTime()), text, type, options: EMOJI_OPTIONS, noScore: true, timeLimit });
@@ -560,6 +642,20 @@
                 if (type === 'multi') {
                     const selected = Array.from(document.querySelectorAll('input[name="m-correct"]:checked')).map(el => parseInt(el.value));
                     if (selected.length === 0) return alert("Маркирай поне един верен отговор.");
+                    nextQuestion = { time: baseTime, text, type, options: opts, correct: selected, timeLimit };
+                } else {
+                    const correct = parseInt(document.querySelector('input[name="m-correct"]:checked').value);
+                    nextQuestion = { time: baseTime, text, type, options: opts, correct, timeLimit };
+                }
+            }
+            if (editQuestionIndex >= 0) {
+                questions[editQuestionIndex] = nextQuestion;
+            } else {
+                questions.push(nextQuestion);
+            }
+            editQuestionIndex = -1;
+            questions.sort((a, b) => a.time - b.time); renderEditorQuestions();
+            closeQModal();
                     questions.push({ time: Math.floor(player.getCurrentTime()), text, type, options: opts, correct: selected, timeLimit });
                 } else {
                     const correct = parseInt(document.querySelector('input[name="m-correct"]:checked').value);
@@ -573,7 +669,16 @@
         function renderEditorQuestions() {
             const list = document.getElementById('q-list');
             list.innerHTML = questions.length === 0 ? '<p class="text-center py-20 text-slate-400 italic font-bold">Няма въпроси.</p>' :
-            questions.map((q, i) => `<div class="p-3 bg-slate-50 border rounded-xl flex justify-between items-center text-xs"><b>${formatTime(q.time)}</b> <span class="truncate mx-2 flex-1 font-bold text-slate-700">${q.text}</span> <button class="text-rose-400 p-1" onclick="window.delQ(${i})"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`).join('');
+            questions.map((q, i) => `
+                <div class="p-3 bg-slate-50 border rounded-xl flex items-center text-xs gap-2">
+                    <b class="shrink-0">${formatTime(q.time)}</b>
+                    <span class="truncate mx-2 flex-1 font-bold text-slate-700">${q.text}</span>
+                    <div class="flex items-center gap-1">
+                        <button class="text-indigo-500 p-1" onclick="openEditQuestion(${i})" title="Редактирай"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                        <button class="text-rose-400 p-1" onclick="window.delQ(${i})" title="Изтрий"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+            `).join('');
             lucide.createIcons();
         }
         window.delQ = (i) => { questions.splice(i, 1); renderEditorQuestions(); };
