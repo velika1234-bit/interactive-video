@@ -311,6 +311,7 @@
                     </div>
                     <div class="flex gap-4 pt-6">
                         <button onclick="closeQModal()" class="flex-1 py-4 bg-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-200">Отказ</button>
+                        <button onclick="document.getElementById('modal-q').classList.add('hidden')" class="flex-1 py-4 bg-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-200">Отказ</button>
                         <button onclick="saveQuestionToEditor()" class="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:bg-indigo-700">Запази</button>
                     </div>
                 </div>
@@ -486,6 +487,9 @@
             editQuestionIndex = -1;
             const currentTime = player && player.getCurrentTime ? player.getCurrentTime() : 0;
             document.getElementById('m-time').innerText = formatTime(currentTime);
+        function openQModal() {
+            player.pauseVideo();
+            document.getElementById('m-time').innerText = formatTime(player.getCurrentTime());
             document.getElementById('m-type').value = 'single';
             document.getElementById('m-text').value = '';
             document.getElementById('m-time-limit').value = '';
@@ -616,6 +620,11 @@
                 const correct = parseInt(document.querySelector('input[name="m-correct"]:checked').value);
                 const options = type === 'yesno' ? ['Да', 'Не'] : ['Вярно', 'Грешно'];
                 nextQuestion = { time: baseTime, text, type, options, correct, timeLimit };
+                questions.push({ time: Math.floor(player.getCurrentTime()), text, type, correctText: answers, timeLimit });
+            } else if (type === 'truefalse' || type === 'yesno') {
+                const correct = parseInt(document.querySelector('input[name="m-correct"]:checked').value);
+                const options = type === 'yesno' ? ['Да', 'Не'] : ['Вярно', 'Грешно'];
+                questions.push({ time: Math.floor(player.getCurrentTime()), text, type, options, correct, timeLimit });
             } else if (type === 'order') {
                 const opts = [0, 1, 2, 3]
                     .map(i => document.getElementById('m-order-' + i).value.trim())
@@ -624,6 +633,9 @@
                 nextQuestion = { time: baseTime, text, type, options: opts, order: opts, timeLimit };
             } else if (type === 'emoji') {
                 nextQuestion = { time: baseTime, text, type, options: EMOJI_OPTIONS, noScore: true, timeLimit };
+                questions.push({ time: Math.floor(player.getCurrentTime()), text, type, options: opts, order: opts, timeLimit });
+            } else if (type === 'emoji') {
+                questions.push({ time: Math.floor(player.getCurrentTime()), text, type, options: EMOJI_OPTIONS, noScore: true, timeLimit });
             } else {
                 const opts = [0, 1, 2].map(i => document.getElementById('m-opt-' + i).value.trim());
                 if (opts.some(o => !o)) return alert("Попълни всички опции!");
@@ -644,6 +656,14 @@
             editQuestionIndex = -1;
             questions.sort((a, b) => a.time - b.time); renderEditorQuestions();
             closeQModal();
+                    questions.push({ time: Math.floor(player.getCurrentTime()), text, type, options: opts, correct: selected, timeLimit });
+                } else {
+                    const correct = parseInt(document.querySelector('input[name="m-correct"]:checked').value);
+                    questions.push({ time: Math.floor(player.getCurrentTime()), text, type, options: opts, correct, timeLimit });
+                }
+            }
+            questions.sort((a, b) => a.time - b.time); renderEditorQuestions();
+            document.getElementById('modal-q').classList.add('hidden');
         }
 
         function renderEditorQuestions() {
