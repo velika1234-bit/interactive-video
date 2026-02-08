@@ -121,9 +121,11 @@
                 <div class="flex-1 flex gap-2 w-full">
                     <input type="text" id="yt-url" placeholder="YouTube линк..." class="flex-1 px-4 py-2 bg-slate-50 border rounded-xl outline-none focus:border-indigo-500 text-sm">
                     <button onclick="loadEditorVideo()" class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-all">Зареди</button>
+                    <button onclick="document.getElementById('file-input-editor').click()" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-all">Качи урок (.txt)</button>
                 </div>
                 <button onclick="exportQuizCode()" class="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold text-sm hover:bg-black transition-all">Запази урок</button>
             </div>
+            <input type="file" id="file-input-editor" class="hidden" accept=".txt" onchange="handleEditorFileImport(event)">
             <div id="editor-view" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-2 space-y-4">
                     <div class="video-container" id="player-container"><div id="player"></div></div>
@@ -393,17 +395,77 @@
         };
 
         // --- EDITOR ---
+        function parseQuizCode(code) {
+            try {
+                const parsed = JSON.parse(decodeURIComponent(escape(atob(code))));
+                if (!parsed || !parsed.v || !Array.isArray(parsed.q)) return null;
+                return parsed;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function ensureEditorTimer() {
+            clearInterval(timeMonitor);
+            timeMonitor = setInterval(() => {
+                if (player && player.getCurrentTime) {
+                    document.getElementById('timer').innerText = formatTime(player.getCurrentTime());
+                }
+            }, 500);
+        }
+
+        function loadEditorFromQuiz(quiz) {
+            document.getElementById('editor-view').classList.remove('hidden');
+            const videoId = quiz.v;
+            if (player && player.loadVideoById) {
+                player.loadVideoById(videoId);
+                ensureEditorTimer();
+            } else {
+                player = new YT.Player('player', {
+                    videoId,
+                    playerVars: { 'enablejsapi': 1, 'origin': getSafeOrigin() },
+                    events: { 'onReady': ensureEditorTimer }
+                });
+            }
+            questions = Array.isArray(quiz.q) ? quiz.q : [];
+            questions.sort((a, b) => a.time - b.time);
+            renderEditorQuestions();
+            document.getElementById('yt-url').value = `https://youtu.be/${videoId}`;
+        }
+
         async function loadEditorVideo() {
             const url = document.getElementById('yt-url').value;
             const id = extractID(url);
             if (!id) return alert("Невалиден YouTube линк.");
             document.getElementById('editor-view').classList.remove('hidden');
-            player = new YT.Player('player', {
-                videoId: id,
-                playerVars: { 'enablejsapi': 1, 'origin': getSafeOrigin() },
-                events: { 'onReady': () => { clearInterval(timeMonitor); timeMonitor = setInterval(() => { if(player.getCurrentTime) document.getElementById('timer').innerText = formatTime(player.getCurrentTime()); }, 500); } }
-            });
+            if (player && player.loadVideoById) {
+                player.loadVideoById(id);
+                ensureEditorTimer();
+            } else {
+                player = new YT.Player('player', {
+                    videoId: id,
+                    playerVars: { 'enablejsapi': 1, 'origin': getSafeOrigin() },
+                    events: { 'onReady': ensureEditorTimer }
+                });
+            }
             questions = []; renderEditorQuestions();
+        }
+
+        function handleEditorFileImport(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const code = String(ev.target.result || '').trim();
+                const parsed = parseQuizCode(code);
+                if (!parsed) {
+                    alert("Файлът не е разпознат. Увери се, че е .txt файл, изтеглен от 'Запази урок'.");
+                    return;
+                }
+                loadEditorFromQuiz(parsed);
+            };
+            reader.readAsText(file);
+            e.target.value = '';
         }
 
         function openQModal() {
