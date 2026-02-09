@@ -43,6 +43,9 @@
         let soloResults = [];
         let myQuizzes = [];
 
+        // Списък за случайни аватари
+        const AVATARS = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐦", "🐤", "🦄", "🐝", "🦋", "🐌", "🐞", "🐙", "🐬"];
+
         // --- ДЕКОДИРАНЕ НА КОД ---
         window.decodeQuizCode = (code) => {
             if (!code) return null;
@@ -157,15 +160,15 @@
             const container = document.getElementById('my-quizzes-list');
             if (!container) return;
             container.innerHTML = myQuizzes.map(q => `
-                <div class="bg-white p-6 rounded-[2.5rem] border shadow-sm flex flex-col sm:flex-row justify-between items-center hover:border-indigo-600 transition-all gap-4">
+                <div class="bg-white p-6 rounded-[1.5rem] sm:rounded-[2.5rem] border shadow-sm flex flex-col sm:flex-row justify-between items-center hover:border-indigo-600 transition-all gap-4">
                     <div class="truncate flex-1 w-full text-center sm:text-left">
-                        <h4 class="font-black text-slate-800 truncate pr-4 text-lg">${q.title}</h4>
+                        <h4 class="font-black text-slate-800 truncate pr-4 text-base sm:text-lg">${q.title}</h4>
                         <p class="text-[10px] text-slate-400 font-black uppercase tracking-widest">${q.questions?.length || 0} въпроса</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="window.startHostFromLibrary('${q.id}')" title="Старт на живо" class="p-4 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all"><i data-lucide="play" class="w-5 h-5"></i></button>
-                        <button onclick="window.showShareCode('${q.id}')" title="Код за споделяне" class="p-4 bg-amber-50 text-amber-600 rounded-2xl hover:bg-amber-600 hover:text-white transition-all"><i data-lucide="link" class="w-5 h-5"></i></button>
-                        <button onclick="window.deleteQuiz('${q.id}')" title="Изтрий" class="p-4 bg-rose-50 text-rose-500 rounded-2xl hover:bg-rose-500 hover:text-white transition-all"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                        <button onclick="window.startHostFromLibrary('${q.id}')" title="Старт на живо" class="p-3 sm:p-4 bg-indigo-50 text-indigo-600 rounded-xl sm:rounded-2xl hover:bg-indigo-600 hover:text-white transition-all"><i data-lucide="play" class="w-5 h-5"></i></button>
+                        <button onclick="window.showShareCode('${q.id}')" title="Код за споделяне" class="p-3 sm:p-4 bg-amber-50 text-amber-600 rounded-xl sm:rounded-2xl hover:bg-amber-600 hover:text-white transition-all"><i data-lucide="link" class="w-5 h-5"></i></button>
+                        <button onclick="window.deleteQuiz('${q.id}')" title="Изтрий" class="p-3 sm:p-4 bg-rose-50 text-rose-500 rounded-xl sm:rounded-2xl hover:bg-rose-500 hover:text-white transition-all"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
                     </div>
                 </div>
             `).join('') || '<div class="col-span-full text-center py-20 opacity-30 italic">Библиотеката е празна</div>';
@@ -176,10 +179,10 @@
             const body = document.getElementById('solo-results-body');
             if (!body) return;
             body.innerHTML = soloResults.sort((a,b) => b.timestamp - a.timestamp).map(r => `
-                <tr class="border-b text-sm transition-all hover:bg-slate-50">
-                    <td class="py-4 px-6 font-black text-slate-700">${r.studentName}</td>
-                    <td class="py-4 px-6 text-slate-500 truncate max-w-[150px]">${r.quizTitle}</td>
-                    <td class="py-4 px-6 text-right"><span class="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-lg font-black">${r.score}</span></td>
+                <tr class="border-b text-xs sm:text-sm transition-all hover:bg-slate-50">
+                    <td class="py-4 px-3 sm:px-6 font-black text-slate-700">${r.studentName}</td>
+                    <td class="py-4 px-3 sm:px-6 text-slate-500 truncate max-w-[100px] sm:max-w-[150px]">${r.quizTitle}</td>
+                    <td class="py-4 px-3 sm:px-6 text-right"><span class="bg-indigo-100 text-indigo-600 px-2 sm:px-3 py-1 rounded-lg font-black">${r.score}</span></td>
                 </tr>
             `).join('') || '<tr><td colspan="3" class="py-10 text-center text-slate-300 italic">Няма резултати</td></tr>';
         }
@@ -273,8 +276,8 @@
             }
 
             document.getElementById('host-results-body').innerHTML = lastFetchedParticipants.sort((a,b) => b.score - a.score).map((p, idx) => `
-                <tr class="border-b transition-all hover:bg-slate-50"><td class="py-4 px-6 font-black">${idx+1}. ${p.avatar || '👤'} ${p.name}</td>
-                <td class="py-4 px-6 text-right"><span class="bg-indigo-100 text-indigo-600 px-4 py-1 rounded-xl font-black">${p.score}</span></td></tr>`).join('');
+                <tr class="border-b transition-all hover:bg-slate-50"><td class="py-4 px-3 sm:px-6 font-black text-xs sm:text-sm">${idx+1}. ${p.avatar || '👤'} ${p.name}</td>
+                <td class="py-4 px-3 sm:px-6 text-right"><span class="bg-indigo-100 text-indigo-600 px-3 sm:px-4 py-1 rounded-xl font-black text-xs sm:text-sm">${p.score}</span></td></tr>`).join('');
         }
 
         window.finishLiveSession = async () => {
@@ -301,11 +304,16 @@
                 const sessionSnap = await getDoc(sessionRef);
                 if (!sessionSnap.exists()) return window.showMessage("Грешен ПИН.", 'error');
                 
+                // Избор на случаен аватар при влизане
+                const randomAvatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
+                
                 window.switchScreen('live-client');
                 liveScore = 0; lastAnsweredIdx = -1;
                 
+                document.getElementById('my-avatar-display').innerText = randomAvatar;
+                
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'participants', user.uid), { 
-                    name: studentNameValue, sessionId: pin, avatar: "🐱", score: 0, finished: false, lastAnsweredIdx: -1 
+                    name: studentNameValue, sessionId: pin, avatar: randomAvatar, score: 0, finished: false, lastAnsweredIdx: -1 
                 });
 
                 unsubscribes.push(onSnapshot(sessionRef, (snap) => {
@@ -336,13 +344,13 @@
             const container = document.getElementById('live-options-client'); 
             container.innerHTML = '';
             if (q.type === 'single') {
-                container.innerHTML = q.options.map((o, i) => `<button onclick="window.submitLive(${i})" class="w-full p-6 text-left bg-slate-50 border-2 border-slate-100 rounded-3xl font-black text-slate-800 shadow-sm hover:border-indigo-600 transition-all text-xl">${o}</button>`).join('');
+                container.innerHTML = q.options.map((o, i) => `<button onclick="window.submitLive(${i})" class="w-full p-4 sm:p-6 text-left bg-slate-50 border-2 border-slate-100 rounded-2xl sm:rounded-3xl font-black text-slate-800 shadow-sm hover:border-indigo-600 transition-all text-base sm:text-xl">${o}</button>`).join('');
             } else if (q.type === 'multiple') {
-                container.innerHTML = q.options.map((o, i) => `<label class="flex items-center gap-4 w-full p-6 bg-slate-50 border-2 border-slate-100 rounded-3xl font-black text-slate-800 cursor-pointer mb-2"><input type="checkbox" name="c-multiple" value="${i}" class="w-8 h-8"> ${o}</label>`).join('') + `<button onclick="window.submitLiveMultiple()" class="w-full mt-4 py-6 bg-indigo-600 text-white rounded-3xl font-black uppercase">Изпрати</button>`;
+                container.innerHTML = q.options.map((o, i) => `<label class="flex items-center gap-4 w-full p-4 sm:p-6 bg-slate-50 border-2 border-slate-100 rounded-2xl sm:rounded-3xl font-black text-slate-800 cursor-pointer mb-2 text-base sm:text-lg"><input type="checkbox" name="c-multiple" value="${i}" class="w-6 h-6 sm:w-8 sm:h-8"> ${o}</label>`).join('') + `<button onclick="window.submitLiveMultiple()" class="w-full mt-4 py-5 bg-indigo-600 text-white rounded-2xl sm:rounded-3xl font-black uppercase text-sm sm:text-base">Изпрати</button>`;
             } else if (q.type === 'boolean') {
-                container.innerHTML = `<div class="grid grid-cols-2 gap-4"><button onclick="window.submitLive(true)" class="p-12 bg-emerald-50 border-4 border-emerald-100 rounded-[2.5rem] font-black text-emerald-600 text-3xl">ДА</button><button onclick="window.submitLive(false)" class="p-12 bg-rose-50 border-4 border-rose-100 rounded-[2.5rem] font-black text-rose-600 text-3xl">НЕ</button></div>`;
+                container.innerHTML = `<div class="grid grid-cols-2 gap-4"><button onclick="window.submitLive(true)" class="p-8 sm:p-12 bg-emerald-50 border-4 border-emerald-100 rounded-[1.5rem] sm:rounded-[2.5rem] font-black text-emerald-600 text-2xl sm:text-3xl">ДА</button><button onclick="window.submitLive(false)" class="p-8 sm:p-12 bg-rose-50 border-4 border-rose-100 rounded-[1.5rem] sm:rounded-[2.5rem] font-black text-rose-600 text-2xl sm:text-3xl">НЕ</button></div>`;
             } else if (q.type === 'open') {
-                container.innerHTML = `<input type="text" id="c-open-answer" placeholder="Отговор..." class="w-full p-8 bg-slate-50 border-2 border-slate-100 rounded-[2.5rem] font-black text-2xl mb-6 outline-none"><button onclick="window.submitLiveOpen()" class="w-full py-6 bg-indigo-600 text-white rounded-3xl font-black uppercase">Изпрати</button>`;
+                container.innerHTML = `<input type="text" id="c-open-answer" placeholder="Отговор..." class="w-full p-5 sm:p-8 bg-slate-50 border-2 border-slate-100 rounded-2xl sm:rounded-[2.5rem] font-black text-xl sm:text-2xl mb-4 sm:mb-6 outline-none text-center"><button onclick="window.submitLiveOpen()" class="w-full py-5 bg-indigo-600 text-white rounded-2xl sm:rounded-3xl font-black uppercase text-sm sm:text-base">Изпрати</button>`;
             }
         };
 
@@ -386,10 +394,15 @@
 
         window.openQuestionModal = () => {
             if (!player || typeof player.getCurrentTime !== 'function') return window.showMessage("Заредете видео!", "error");
+            
+            document.getElementById('m-text').value = '';
+            document.getElementById('m-type').value = 'single';
+            document.getElementById('m-points').value = '1';
+
             document.getElementById('modal-q').classList.remove('hidden');
             document.getElementById('modal-q').classList.add('flex');
             document.getElementById('m-time').innerText = window.formatTime(player.getCurrentTime());
-            window.updateModalFields();
+            window.updateModalFields(); 
         };
 
         window.updateModalFields = () => {
@@ -398,11 +411,11 @@
             container.innerHTML = '';
             if (type === 'single' || type === 'multiple') { 
                 const it = type === 'single' ? 'radio' : 'checkbox';
-                for (let i = 0; i < 4; i++) container.innerHTML += `<div class="flex items-center gap-3 mb-2 bg-slate-50 p-4 rounded-3xl border border-slate-100"><input type="${it}" name="m-correct" value="${i}"><input type="text" id="m-opt-${i}" placeholder="Отговор ${i+1}" class="flex-1 bg-transparent font-black outline-none text-lg"></div>`;
+                for (let i = 0; i < 4; i++) container.innerHTML += `<div class="flex items-center gap-3 mb-2 bg-slate-50 p-3 sm:p-4 rounded-xl sm:rounded-3xl border border-slate-100"><input type="${it}" name="m-correct" value="${i}" class="w-6 h-6"><input type="text" id="m-opt-${i}" placeholder="Отговор ${i+1}" class="flex-1 bg-transparent font-black outline-none text-base sm:text-lg"></div>`;
             } else if (type === 'boolean') {
-                container.innerHTML = `<div class="grid grid-cols-2 gap-4 mt-2"><label class="flex items-center gap-4 p-8 bg-slate-50 rounded-[2rem] border-2 font-black cursor-pointer"><input type="radio" name="m-correct" value="true" checked> ДА</label><label class="flex items-center gap-4 p-8 bg-slate-50 rounded-[2rem] border-2 font-black cursor-pointer"><input type="radio" name="m-correct" value="false"> НЕ</label></div>`;
+                container.innerHTML = `<div class="grid grid-cols-2 gap-4 mt-2"><label class="flex items-center justify-center gap-4 p-5 sm:p-8 bg-slate-50 rounded-[1rem] sm:rounded-[2rem] border-2 font-black cursor-pointer"><input type="radio" name="m-correct" value="true" checked> ДА</label><label class="flex items-center justify-center gap-4 p-5 sm:p-8 bg-slate-50 rounded-[1rem] sm:rounded-[2rem] border-2 font-black cursor-pointer"><input type="radio" name="m-correct" value="false"> НЕ</label></div>`;
             } else if (type === 'open') {
-                container.innerHTML = `<input type="text" id="m-open-correct" placeholder="Верен отговор" class="w-full p-6 bg-slate-50 rounded-3xl border-2 font-black outline-none text-lg">`;
+                container.innerHTML = `<input type="text" id="m-open-correct" placeholder="Верен отговор" class="w-full p-5 sm:p-6 bg-slate-50 rounded-2xl sm:rounded-3xl border-2 font-black outline-none text-base sm:text-lg">`;
             }
         };
 
@@ -420,13 +433,16 @@
             } else if (type === 'boolean') {
                 qData.correct = document.querySelector('input[name="m-correct"]:checked').value === 'true';
             } else if (type === 'open') qData.correct = document.getElementById('m-open-correct')?.value.trim().toLowerCase();
-            questions.push(qData); questions.sort((a,b) => a.time - b.time); renderEditorList(); 
+            
+            questions.push(qData); 
+            questions.sort((a,b) => a.time - b.time); 
+            renderEditorList(); 
             document.getElementById('modal-q').classList.add('hidden');
         };
 
         function renderEditorList() {
             const list = document.getElementById('q-list'); if (!list) return;
-            list.innerHTML = questions.map((q, i) => `<div class="p-4 bg-white rounded-3xl mb-3 flex justify-between items-center border shadow-sm animate-pop"><div class="truncate flex-1 font-black"><span class="text-indigo-600 text-xs bg-indigo-50 px-2 py-1 rounded-lg">${window.formatTime(q.time)}</span> <span class="text-slate-700 ml-2">${q.text}</span></div><button onclick="window.deleteEditorQuestion(${i})" class="text-rose-400 p-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`).join('') || '<p class="text-center text-slate-300 italic py-10">Няма добавени въпроси.</p>';
+            list.innerHTML = questions.map((q, i) => `<div class="p-3 sm:p-4 bg-white rounded-2xl mb-3 flex justify-between items-center border shadow-sm animate-pop"><div class="truncate flex-1 font-black"><span class="text-indigo-600 text-[9px] bg-indigo-50 px-2 py-1 rounded-lg">${window.formatTime(q.time)}</span> <span class="text-slate-700 ml-2 text-xs sm:text-sm">${q.text}</span></div><button onclick="window.deleteEditorQuestion(${i})" class="text-rose-400 p-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`).join('') || '<p class="text-center text-slate-300 italic py-10 text-xs">Няма добавени въпроси.</p>';
             if (window.lucide) lucide.createIcons();
         }
 
@@ -438,7 +454,7 @@
             window.switchScreen('teacher-dashboard'); 
         };
 
-        window.deleteQuiz = async (id) => { if (confirm("Сигурни ли сте, че искате да изтриете този урок?")) await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'my_quizzes', id)); };
+        window.deleteQuiz = async (id) => { if (confirm("Сигурни ли сте?")) await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'my_quizzes', id)); };
         
         window.showShareCode = (id) => {
             const q = myQuizzes.find(x => x.id === id);
@@ -450,14 +466,14 @@
         window.copyShareCode = () => {
             const input = document.getElementById('share-code-display');
             input.select(); document.execCommand('copy');
-            window.showMessage("Кодът е копиран успешно!");
+            window.showMessage("Копирано!");
         };
 
         window.handleTeacherAuth = async () => {
             if (document.getElementById('auth-code').value.trim() === MASTER_TEACHER_CODE) {
                 await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile'), { role: 'teacher', activatedAt: serverTimestamp() });
                 isTeacher = true; window.switchScreen('teacher-dashboard');
-            } else { window.showMessage("Грешен код за учител!", "error"); }
+            } else { window.showMessage("Грешен код!", "error"); }
         };
 
         // --- SOLO MODE ---
@@ -465,7 +481,7 @@
             const pinCode = document.getElementById('ind-quiz-code').value.trim();
             const decoded = window.decodeQuizCode(pinCode);
             if (!decoded) return window.showMessage("Невалиден код.", 'error');
-            const name = prompt("Вашето име за резултатите:");
+            const name = prompt("Вашето име:");
             if (!name) return;
             studentNameValue = name;
             currentQuiz = decoded; 
@@ -500,10 +516,10 @@
             document.getElementById('ind-overlay-q-text').innerText = q.text;
             const container = document.getElementById('ind-overlay-options'); 
             container.innerHTML = '';
-            if (q.type === 'single') container.innerHTML = q.options.map((o, i) => `<button onclick="window.submitSolo(${i})" class="w-full p-6 text-left bg-white/10 border-2 border-white/20 rounded-3xl font-black text-white hover:bg-white/20 transition-all text-xl">${o}</button>`).join('');
-            else if (q.type === 'multiple') container.innerHTML = q.options.map((o, i) => `<label class="flex items-center gap-4 w-full p-6 bg-white/10 border-2 border-white/20 rounded-3xl font-black text-white cursor-pointer mb-2 text-xl"><input type="checkbox" name="s-multiple" value="${i}" class="w-6 h-6"> ${o}</label>`).join('') + `<button onclick="window.submitSoloMultiple()" class="w-full mt-4 py-6 bg-indigo-600 text-white rounded-3xl font-black uppercase text-xl shadow-lg">Изпрати</button>`;
-            else if (q.type === 'boolean') container.innerHTML = `<div class="grid grid-cols-2 gap-4"><button onclick="window.submitSolo(true)" class="p-12 bg-emerald-500/80 rounded-3xl font-black border-2 border-white/30 text-white text-3xl">ДА</button><button onclick="window.submitSolo(false)" class="p-12 bg-rose-500/80 rounded-3xl font-black border-2 border-white/30 text-white text-3xl">НЕ</button></div>`;
-            else if (q.type === 'open') container.innerHTML = `<input type="text" id="s-open-answer" placeholder="Отговор..." class="w-full p-8 bg-white/10 border-2 border-white/20 rounded-[2.5rem] font-black text-white text-2xl outline-none mb-6 text-center"><button onclick="window.submitSoloOpen()" class="w-full py-6 bg-indigo-600 text-white rounded-3xl font-black uppercase text-xl shadow-lg">Изпрати</button>`;
+            if (q.type === 'single') container.innerHTML = q.options.map((o, i) => `<button onclick="window.submitSolo(${i})" class="w-full p-4 sm:p-6 text-left bg-white/10 border-2 border-white/20 rounded-2xl sm:rounded-3xl font-black text-white hover:bg-white/20 transition-all text-base sm:text-lg">${o}</button>`).join('');
+            else if (q.type === 'multiple') container.innerHTML = q.options.map((o, i) => `<label class="flex items-center gap-4 w-full p-4 sm:p-6 bg-white/10 border-2 border-white/20 rounded-2xl sm:rounded-3xl font-black text-white cursor-pointer mb-2 text-base sm:text-lg"><input type="checkbox" name="s-multiple" value="${i}" class="w-6 h-6"> ${o}</label>`).join('') + `<button onclick="window.submitSoloMultiple()" class="w-full mt-4 py-5 bg-indigo-600 text-white rounded-2xl sm:rounded-3xl font-black uppercase text-sm sm:text-base">Изпрати</button>`;
+            else if (q.type === 'boolean') container.innerHTML = `<div class="grid grid-cols-2 gap-4"><button onclick="window.submitSolo(true)" class="p-8 sm:p-12 bg-emerald-500/80 rounded-2xl sm:rounded-3xl font-black border-2 border-white/30 text-white text-2xl sm:text-3xl">ДА</button><button onclick="window.submitSolo(false)" class="p-8 sm:p-12 bg-rose-500/80 rounded-2xl sm:rounded-3xl font-black border-2 border-white/30 text-white text-2xl sm:text-3xl">НЕ</button></div>`;
+            else if (q.type === 'open') container.innerHTML = `<input type="text" id="s-open-answer" placeholder="Отговор..." class="w-full p-6 sm:p-8 bg-white/10 border-2 border-white/20 rounded-2xl sm:rounded-[2.5rem] font-black text-white text-xl sm:text-2xl outline-none mb-4 sm:mb-6 text-center"><button onclick="window.submitSoloOpen()" class="w-full py-5 bg-indigo-600 text-white rounded-2xl sm:rounded-3xl font-black uppercase text-sm sm:text-base">Изпрати</button>`;
         }
 
         window.submitSoloFinal = (isCorrect) => {
@@ -544,7 +560,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color: #1e293b; overflow-x: hidden; }
-        .video-container { position: relative; padding-bottom: 56.25%; height: 0; background: #000; border-radius: 2.5rem; overflow: hidden; }
+        .video-container { position: relative; padding-bottom: 56.25%; height: 0; background: #000; border-radius: 1rem; sm:border-radius: 2.5rem; overflow: hidden; }
         .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
         .animate-pop { animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes pop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -555,63 +571,63 @@
 <body class="bg-slate-50 min-h-screen">
 
     <div id="auth-loader" class="fixed inset-0 bg-white z-[999] flex flex-col items-center justify-center">
-        <div class="w-16 h-16 border-8 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        <div class="w-10 h-10 sm:w-16 sm:h-16 border-4 sm:border-8 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
     </div>
 
-    <div id="msg-container" class="fixed top-8 left-1/2 -translate-x-1/2 z-[3000] w-full max-w-sm px-4 pointer-events-none"></div>
+    <div id="msg-container" class="fixed top-4 sm:top-8 left-1/2 -translate-x-1/2 z-[3000] w-full max-w-[280px] sm:max-w-sm px-4 pointer-events-none"></div>
 
-    <div id="app" class="max-w-7xl mx-auto p-4 md:p-10">
+    <div id="app" class="max-w-7xl mx-auto p-3 sm:p-10">
         
         <!-- Welcome -->
-        <div id="screen-welcome" class="py-12 animate-pop">
-            <header class="text-center mb-16">
-                <h1 class="text-6xl md:text-9xl font-black mb-4 tracking-tighter text-slate-900 leading-none">VideoQuiz <span class="text-indigo-600">Pro</span></h1>
-                <p class="text-slate-400 font-black uppercase tracking-[0.2em] text-xs">Интерактивно обучение от ново поколение</p>
+        <div id="screen-welcome" class="py-4 sm:py-12 animate-pop">
+            <header class="text-center mb-8 sm:mb-16">
+                <h1 class="text-4xl sm:text-7xl md:text-9xl font-black mb-2 sm:mb-4 tracking-tighter text-slate-900 leading-none">VideoQuiz <span class="text-indigo-600">Pro</span></h1>
+                <p class="text-slate-400 font-black uppercase tracking-[0.2em] text-[8px] sm:text-xs">Интерактивно обучение от ново поколение</p>
             </header>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="bg-white p-10 rounded-[3.5rem] border shadow-sm flex flex-col gap-6 text-center">
-                    <h2 class="text-2xl font-black text-indigo-600">Индивидуално</h2>
-                    <input type="text" id="ind-quiz-code" placeholder="Код на урок" class="w-full p-5 bg-slate-50 rounded-2xl border-2 outline-none font-bold text-center">
-                    <button onclick="window.startIndividual()" class="w-full py-5 bg-indigo-600 text-white rounded-3xl font-black uppercase shadow-xl hover:bg-indigo-700 transition-all">Започни</button>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
+                <div class="bg-white p-6 sm:p-10 rounded-[2rem] sm:rounded-[3.5rem] border shadow-sm flex flex-col gap-4 sm:gap-6 text-center">
+                    <h2 class="text-lg sm:text-2xl font-black text-indigo-600">Индивидуално</h2>
+                    <input type="text" id="ind-quiz-code" placeholder="Код на урок" class="w-full p-3 sm:p-5 bg-slate-50 rounded-xl sm:rounded-2xl border-2 outline-none font-bold text-center text-sm sm:text-base">
+                    <button onclick="window.startIndividual()" class="w-full py-4 sm:py-5 bg-indigo-600 text-white rounded-2xl sm:rounded-3xl font-black uppercase shadow-xl hover:bg-indigo-700 transition-all text-xs sm:text-base">Започни</button>
                 </div>
-                <div class="bg-white p-10 rounded-[3.5rem] border-2 border-emerald-500 shadow-2xl flex flex-col gap-6 text-center scale-105">
-                    <h2 class="text-2xl font-black text-emerald-600">В Клас</h2>
-                    <input type="text" id="live-student-name" placeholder="Твоето име" class="w-full p-4 bg-slate-50 rounded-2xl border-2 outline-none font-bold text-center">
-                    <input type="text" id="live-pin" placeholder="PIN код" class="w-full p-5 bg-slate-50 rounded-2xl border-2 font-black text-center text-2xl outline-none">
-                    <button onclick="window.joinLiveSession()" class="w-full py-5 bg-emerald-500 text-white rounded-3xl font-black uppercase shadow-xl hover:bg-emerald-600 transition-all">Влез в сесия</button>
+                <div class="bg-white p-6 sm:p-10 rounded-[2rem] sm:rounded-[3.5rem] border-2 border-emerald-500 shadow-2xl flex flex-col gap-4 sm:gap-6 text-center md:scale-105">
+                    <h2 class="text-lg sm:text-2xl font-black text-emerald-600">В Клас</h2>
+                    <input type="text" id="live-student-name" placeholder="Твоето име" class="w-full p-3 bg-slate-50 rounded-xl sm:rounded-2xl border-2 outline-none font-bold text-center text-sm">
+                    <input type="text" id="live-pin" placeholder="PIN код" class="w-full p-4 bg-slate-50 rounded-xl sm:rounded-2xl border-2 font-black text-center text-xl sm:text-2xl outline-none">
+                    <button onclick="window.joinLiveSession()" class="w-full py-4 sm:py-5 bg-emerald-500 text-white rounded-2xl sm:rounded-3xl font-black uppercase shadow-xl hover:bg-emerald-600 transition-all text-xs sm:text-base">Влез в сесия</button>
                 </div>
-                <div class="bg-slate-900 p-10 rounded-[3.5rem] shadow-2xl text-white flex flex-col gap-6 text-center">
-                    <h2 class="text-2xl font-black text-indigo-400">Учители</h2>
-                    <button onclick="window.switchScreen('teacher-auth')" class="mt-auto w-full py-6 bg-indigo-600 text-white rounded-3xl font-black uppercase">Влез в панел</button>
+                <div class="bg-slate-900 p-6 sm:p-10 rounded-[2rem] sm:rounded-[3.5rem] shadow-2xl text-white flex flex-col gap-4 sm:gap-6 text-center">
+                    <h2 class="text-lg sm:text-2xl font-black text-indigo-400">Учители</h2>
+                    <button onclick="window.switchScreen('teacher-auth')" class="mt-auto w-full py-5 sm:py-6 bg-indigo-600 text-white rounded-2xl sm:rounded-3xl font-black uppercase text-xs sm:text-base">Влез в панел</button>
                 </div>
             </div>
         </div>
 
         <!-- Dashboard -->
-        <div id="screen-teacher-dashboard" class="hidden animate-pop space-y-8">
-            <div class="flex flex-col md:flex-row items-center justify-between bg-white p-10 rounded-[4rem] border shadow-sm">
-                <h2 class="text-4xl font-black text-slate-900 leading-none">Учителски Панел</h2>
-                <div class="flex gap-4">
-                    <button onclick="window.switchScreen('create')" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs shadow-lg">+ Нов Урок</button>
-                    <button onclick="window.switchScreen('welcome')" class="bg-slate-100 px-8 py-4 rounded-2xl font-black uppercase text-xs">Назад</button>
+        <div id="screen-teacher-dashboard" class="hidden animate-pop space-y-6 sm:space-y-8">
+            <div class="flex flex-col md:flex-row items-center justify-between bg-white p-5 sm:p-10 rounded-[2rem] sm:rounded-[4rem] border shadow-sm gap-4">
+                <h2 class="text-xl sm:text-4xl font-black text-slate-900 leading-none">Учителски Панел</h2>
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <button onclick="window.switchScreen('create')" class="flex-1 sm:flex-none bg-indigo-600 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase text-[10px] sm:text-xs shadow-lg">+ Нов Урок</button>
+                    <button onclick="window.switchScreen('welcome')" class="flex-1 sm:flex-none bg-slate-100 px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase text-[10px] sm:text-xs">Назад</button>
                 </div>
             </div>
             
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                 <div class="space-y-4">
-                    <h3 class="text-xl font-black px-4 flex items-center gap-2 text-indigo-600"><i data-lucide="book-open"></i> Библиотека</h3>
-                    <div id="my-quizzes-list" class="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar"></div>
+                    <h3 class="text-base sm:text-xl font-black px-2 flex items-center gap-2 text-indigo-600"><i data-lucide="book-open" class="w-4 h-4 sm:w-5 sm:h-5"></i> Библиотека</h3>
+                    <div id="my-quizzes-list" class="space-y-4 max-h-[400px] sm:max-h-[600px] overflow-y-auto pr-2 custom-scrollbar"></div>
                 </div>
                 <div class="space-y-4">
-                    <div class="flex justify-between items-center px-4">
-                        <h3 class="text-xl font-black flex items-center gap-2 text-indigo-600"><i data-lucide="users"></i> Резултати (Solo)</h3>
-                        <button onclick="window.exportSoloResults()" class="text-xs bg-emerald-100 text-emerald-600 px-4 py-2 rounded-xl font-black uppercase">Excel</button>
+                    <div class="flex justify-between items-center px-2">
+                        <h3 class="text-base sm:text-xl font-black flex items-center gap-2 text-indigo-600"><i data-lucide="users" class="w-4 h-4 sm:w-5 sm:h-5"></i> Резултати (Solo)</h3>
+                        <button onclick="window.exportSoloResults()" class="text-[9px] sm:text-[10px] bg-emerald-100 text-emerald-600 px-3 py-1.5 rounded-lg font-black uppercase">Excel</button>
                     </div>
-                    <div class="bg-white rounded-[2.5rem] border shadow-sm h-[500px] overflow-hidden flex flex-col">
+                    <div class="bg-white rounded-[1.5rem] sm:rounded-[2.5rem] border shadow-sm h-[300px] sm:h-[500px] overflow-hidden flex flex-col">
                         <div class="overflow-y-auto flex-1 custom-scrollbar">
                             <table class="w-full text-left">
-                                <thead class="sticky top-0 bg-slate-50 font-black text-[10px] uppercase text-slate-400 border-b">
-                                    <tr><th class="py-4 px-6">Ученик</th><th class="py-4 px-6">Урок</th><th class="py-4 px-6 text-right">Резултат</th></tr>
+                                <thead class="sticky top-0 bg-slate-50 font-black text-[8px] sm:text-[10px] uppercase text-slate-400 border-b">
+                                    <tr><th class="py-3 px-3 sm:px-6">Ученик</th><th class="py-3 px-3 sm:px-6">Урок</th><th class="py-3 px-3 sm:px-6 text-right">Точки</th></tr>
                                 </thead>
                                 <tbody id="solo-results-body"></tbody>
                             </table>
@@ -622,117 +638,135 @@
         </div>
 
         <!-- Create Screen -->
-        <div id="screen-create" class="hidden space-y-10 animate-pop">
-            <div class="bg-white p-10 rounded-[4rem] border shadow-sm flex flex-col md:flex-row gap-6 items-center">
-                <button onclick="window.switchScreen('teacher-dashboard')" class="p-6 bg-slate-50 rounded-3xl"><i data-lucide="arrow-left"></i></button>
-                <input type="text" id="yt-url" placeholder="YouTube URL..." class="flex-1 p-6 bg-slate-50 rounded-[2rem] border-2 border-transparent focus:border-indigo-600 outline-none font-black text-lg">
-                <button onclick="window.loadEditorVideo()" class="bg-slate-900 text-white px-12 py-6 rounded-3xl font-black uppercase">Зареди</button>
-                <button onclick="window.saveQuizToLibrary()" class="bg-indigo-600 text-white px-12 py-6 rounded-3xl font-black uppercase shadow-xl">Запази урока</button>
+        <div id="screen-create" class="hidden space-y-6 sm:space-y-10 animate-pop">
+            <div class="bg-white p-5 sm:p-10 rounded-[2rem] sm:rounded-[4rem] border shadow-sm flex flex-col md:flex-row gap-4 sm:gap-6 items-center">
+                <button onclick="window.switchScreen('teacher-dashboard')" class="p-4 sm:p-6 bg-slate-50 rounded-2xl sm:rounded-3xl"><i data-lucide="arrow-left" class="w-5 h-5 sm:w-6 sm:h-6"></i></button>
+                <input type="text" id="yt-url" placeholder="YouTube URL..." class="flex-1 w-full p-4 bg-slate-50 rounded-xl sm:rounded-[2rem] border-2 border-transparent focus:border-indigo-600 outline-none font-black text-sm sm:text-lg">
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <button onclick="window.loadEditorVideo()" class="flex-1 sm:flex-none bg-slate-900 text-white px-6 py-4 rounded-xl sm:rounded-3xl font-black uppercase text-xs sm:text-base">Зареди</button>
+                    <button onclick="window.saveQuizToLibrary()" class="flex-1 sm:flex-none bg-indigo-600 text-white px-6 py-4 rounded-xl sm:rounded-3xl font-black uppercase shadow-xl text-xs sm:text-base">Запази</button>
+                </div>
             </div>
-            <div id="editor-view" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <div id="editor-view" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10">
                 <div class="lg:col-span-8">
-                    <div id="editor-player-container" class="video-container border-8 border-white shadow-2xl"></div>
-                    <div class="mt-8 bg-white p-12 rounded-[4rem] flex justify-between items-center border shadow-sm">
-                        <div class="text-7xl font-black text-indigo-600" id="timer">00:00</div>
-                        <button onclick="window.openQuestionModal()" class="bg-rose-500 text-white px-16 py-8 rounded-[2.5rem] font-black uppercase flex items-center gap-4 hover:scale-105 transition-all">
-                            <i data-lucide="plus-circle"></i> Добави въпрос
+                    <div id="editor-player-container" class="video-container border-4 sm:border-8 border-white shadow-2xl"></div>
+                    <div class="mt-4 sm:mt-8 bg-white p-5 sm:p-12 rounded-[1.5rem] sm:rounded-[4rem] flex flex-col sm:flex-row justify-between items-center border shadow-sm gap-4">
+                        <div class="text-4xl sm:text-7xl font-black text-indigo-600" id="timer">00:00</div>
+                        <button onclick="window.openQuestionModal()" class="w-full sm:w-auto bg-rose-500 text-white px-8 py-4 sm:py-8 rounded-xl sm:rounded-[2.5rem] font-black uppercase flex items-center justify-center gap-3 hover:scale-105 transition-all text-xs sm:text-base">
+                            <i data-lucide="plus-circle" class="w-4 h-4 sm:w-6 sm:h-6"></i> Добави въпрос
                         </button>
                     </div>
                 </div>
-                <div class="lg:col-span-4 bg-white rounded-[4rem] p-10 h-[700px] flex flex-col border shadow-sm overflow-hidden">
-                    <h3 class="pb-6 border-b mb-8 font-black text-xs text-slate-400 uppercase tracking-widest">Въпроси</h3>
+                <div class="lg:col-span-4 bg-white rounded-[1.5rem] sm:rounded-[4rem] p-5 sm:p-10 h-[300px] sm:h-[700px] flex flex-col border shadow-sm overflow-hidden">
+                    <h3 class="pb-3 border-b mb-4 sm:mb-8 font-black text-[9px] text-slate-400 uppercase tracking-widest text-center">Въпроси</h3>
                     <div id="q-list" class="flex-1 overflow-y-auto custom-scrollbar"></div>
                 </div>
             </div>
         </div>
 
         <!-- Live Host -->
-        <div id="screen-live-host" class="hidden space-y-8 animate-pop">
-            <div class="bg-indigo-600 p-8 rounded-[4rem] flex flex-col md:flex-row items-center justify-between text-white shadow-2xl">
-                <div class="flex flex-col"><span class="text-xs opacity-60 font-black">ПИН КОД ЗА КЛАСА:</span><div class="text-8xl font-black leading-none" id="host-pin">----</div></div>
-                <div class="flex gap-4">
-                    <div class="bg-white/10 px-8 py-6 rounded-[2.5rem] text-center"><span class="block text-[10px] font-black uppercase mb-1">Ученици</span><span id="host-participant-count" class="text-4xl font-black">0</span></div>
-                    <div class="flex flex-col gap-2">
-                        <button onclick="window.finishLiveSession()" class="bg-rose-500 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs shadow-lg">Край</button>
-                        <button id="btn-export-results" onclick="window.exportLiveResults()" class="hidden bg-emerald-500 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs">Excel</button>
-                        <button onclick="window.switchScreen('teacher-dashboard')" class="bg-white/10 text-white px-8 py-2 rounded-2xl font-black uppercase text-[10px]">Към таблото</button>
+        <div id="screen-live-host" class="hidden space-y-6 animate-pop">
+            <div class="bg-indigo-600 p-6 sm:p-8 rounded-[2rem] sm:rounded-[4rem] flex flex-col md:flex-row items-center justify-between text-white shadow-2xl gap-6">
+                <div class="flex flex-col text-center sm:text-left"><span class="text-[9px] opacity-60 font-black">ПИН КОД:</span><div class="text-5xl sm:text-8xl font-black leading-none" id="host-pin">----</div></div>
+                <div class="flex gap-2 sm:gap-4 w-full sm:w-auto">
+                    <div class="flex-1 sm:flex-none bg-white/10 px-4 sm:px-8 py-3 sm:py-6 rounded-2xl sm:rounded-[2.5rem] text-center"><span class="block text-[8px] sm:text-[10px] font-black uppercase mb-1">Ученици</span><span id="host-participant-count" class="text-xl sm:text-4xl font-black">0</span></div>
+                    <div class="flex-1 sm:flex-none flex flex-col gap-1.5 sm:gap-2">
+                        <button onclick="window.finishLiveSession()" class="bg-rose-500 text-white px-4 py-1.5 rounded-lg sm:rounded-2xl font-black uppercase text-[9px] sm:text-xs shadow-lg">Край</button>
+                        <button id="btn-export-results" onclick="window.exportLiveResults()" class="hidden bg-emerald-500 text-white px-4 py-1.5 rounded-lg sm:rounded-2xl font-black uppercase text-[9px] sm:text-xs">Excel</button>
+                        <button onclick="window.switchScreen('teacher-dashboard')" class="bg-white/10 text-white px-4 py-1.5 rounded-lg sm:rounded-2xl font-black uppercase text-[9px] sm:text-xs">Табло</button>
                     </div>
                 </div>
             </div>
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10">
                 <div class="lg:col-span-8">
                     <div id="host-player-area" class="hidden">
-                        <div id="host-video-container" class="video-container ring-8 ring-white shadow-2xl"></div>
-                        <div class="mt-8 bg-white p-10 rounded-[3rem] shadow-sm border flex flex-col gap-6">
-                            <div class="flex justify-between items-end border-b pb-6">
-                                <div class="text-6xl font-black text-slate-800" id="host-timer">00:00</div>
-                                <div id="progress-stats" class="text-sm font-black text-slate-400 uppercase tracking-widest">Очакват се отговори...</div>
+                        <div id="host-video-container" class="video-container ring-4 sm:ring-8 ring-white shadow-2xl"></div>
+                        <div class="mt-4 sm:mt-8 bg-white p-5 sm:p-10 rounded-[1.5rem] sm:rounded-[3rem] shadow-sm border flex flex-col gap-4">
+                            <div class="flex flex-col sm:flex-row justify-between items-center sm:items-end border-b pb-3 sm:pb-4 gap-2">
+                                <div class="text-4xl sm:text-6xl font-black text-slate-800" id="host-timer">00:00</div>
+                                <div id="progress-stats" class="text-[9px] sm:text-sm font-black text-slate-400 uppercase tracking-widest text-center">Очакват се отговори...</div>
                             </div>
-                            <div id="class-progress-bar" class="w-full h-8 bg-slate-100 rounded-full overflow-hidden flex transition-opacity duration-500 opacity-0 shadow-inner">
+                            <div id="class-progress-bar" class="w-full h-3 sm:h-8 bg-slate-100 rounded-full overflow-hidden flex transition-opacity duration-500 opacity-0 shadow-inner">
                                 <div id="progress-correct" class="h-full bg-emerald-500 transition-all duration-500"></div>
                                 <div id="progress-wrong" class="h-full bg-rose-500 transition-all duration-500"></div>
                             </div>
                         </div>
                     </div>
-                    <div id="host-setup-area" class="bg-white p-20 rounded-[4rem] text-center shadow-sm border"><button onclick="window.initHostPlayer()" class="w-full max-w-sm py-8 bg-indigo-600 text-white rounded-[2.5rem] font-black uppercase shadow-2xl hover:scale-105 transition-all">Старт на видеото</button></div>
+                    <div id="host-setup-area" class="bg-white p-10 sm:p-20 rounded-[1.5rem] sm:rounded-[4rem] text-center shadow-sm border"><button onclick="window.initHostPlayer()" class="w-full max-w-sm py-6 bg-indigo-600 text-white rounded-xl sm:rounded-[2.5rem] font-black uppercase shadow-2xl text-sm sm:text-base">Старт на Видеото</button></div>
                 </div>
-                <div class="lg:col-span-4 bg-white rounded-[4rem] flex flex-col h-[700px] border shadow-sm overflow-hidden"><div class="p-8 border-b font-black uppercase text-xs text-slate-500">Класиране на живо</div><div class="flex-1 overflow-y-auto p-4 custom-scrollbar"><table class="w-full"><tbody id="host-results-body"></tbody></table></div></div>
+                <div class="lg:col-span-4 bg-white rounded-[1.5rem] sm:rounded-[4rem] flex flex-col h-[300px] sm:h-[700px] border shadow-sm overflow-hidden"><div class="p-5 sm:p-8 border-b font-black uppercase text-[9px] sm:text-[10px] text-slate-500 text-center">Класиране на живо</div><div class="flex-1 overflow-y-auto p-3 sm:p-4 custom-scrollbar"><table class="w-full"><tbody id="host-results-body"></tbody></table></div></div>
             </div>
         </div>
 
         <!-- Solo Overlay -->
-        <div id="screen-solve" class="hidden relative h-[90vh] overflow-hidden rounded-[5rem] bg-black shadow-2xl border-[16px] border-slate-900">
+        <div id="screen-solve" class="hidden relative h-[80vh] sm:h-[90vh] overflow-hidden rounded-[1.5rem] sm:rounded-[5rem] bg-black shadow-2xl border-[8px] sm:border-[16px] border-slate-900">
             <div id="solve-player-container" class="absolute inset-0"></div>
-            <div id="ind-overlay" class="absolute inset-0 bg-slate-900/80 backdrop-blur-md hidden flex-col items-center justify-center p-10 z-[100] animate-pop">
-                <div class="max-w-3xl w-full text-center space-y-12">
-                    <h3 id="ind-overlay-q-text" class="text-4xl md:text-5xl font-black text-white leading-tight">...</h3>
-                    <div id="ind-overlay-options" class="grid grid-cols-1 gap-4 w-full"></div>
+            <div id="ind-overlay" class="absolute inset-0 bg-slate-900/80 backdrop-blur-md hidden flex-col items-center justify-center p-5 sm:p-10 z-[100] animate-pop text-center">
+                <div class="max-w-3xl w-full space-y-6 sm:space-y-12">
+                    <h3 id="ind-overlay-q-text" class="text-xl sm:text-3xl md:text-5xl font-black text-white leading-tight">...</h3>
+                    <div id="ind-overlay-options" class="grid grid-cols-1 gap-3 sm:gap-4 w-full max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar"></div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Student Live Client View -->
+        <div id="screen-live-client" class="hidden min-h-[75vh] flex flex-col items-center justify-center animate-pop p-4 text-center">
+            <div id="client-waiting" class="space-y-8">
+                <div class="w-32 h-32 sm:w-48 sm:h-48 bg-white rounded-[2rem] sm:rounded-[5rem] flex items-center justify-center mx-auto text-6xl sm:text-9xl shadow-2xl animate-bounce" id="my-avatar-display">👤</div>
+                <h2 id="waiting-status-text" class="text-xl sm:text-4xl font-black uppercase text-slate-800 tracking-tighter">Очаквай въпрос...</h2>
+            </div>
+            <div id="client-question" class="hidden w-full max-w-3xl bg-white p-6 sm:p-20 rounded-[2rem] sm:rounded-[5rem] shadow-2xl border-t-[8px] sm:border-t-[20px] border-indigo-100">
+                <h3 id="live-q-text-client" class="text-lg sm:text-3xl font-black mb-10 leading-tight">...</h3>
+                <div id="live-options-client" class="grid grid-cols-1 gap-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar"></div>
+            </div>
+            <div id="client-finished" class="hidden bg-white p-10 sm:p-24 rounded-[2rem] sm:rounded-[5rem] shadow-2xl border-4 border-indigo-600 space-y-6 sm:space-y-10">
+                <h2 class="text-2xl sm:text-5xl font-black">Тестът приключи!</h2>
+                <div class="text-6xl sm:text-[10rem] font-black text-indigo-600 leading-none" id="final-score-display">0</div>
+                <button onclick="location.reload()" class="w-full py-4 sm:py-8 bg-slate-900 text-white rounded-xl sm:rounded-[2.5rem] font-black uppercase text-xs sm:text-base">Начало</button>
             </div>
         </div>
 
         <!-- Solo Finish -->
-        <div id="screen-finish" class="hidden py-40 text-center animate-pop">
-            <h2 class="text-7xl font-black text-slate-900 mb-6 tracking-tighter">Браво! 🎉</h2>
-            <div id="res-score" class="text-[12rem] font-black text-indigo-600 mb-10 leading-none">0/0</div>
-            <button onclick="location.reload()" class="py-6 px-16 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase shadow-xl hover:scale-105 transition-transform">Начало</button>
-        </div>
-
-        <!-- Client Live Screen -->
-        <div id="screen-live-client" class="hidden min-h-[70vh] flex flex-col items-center justify-center animate-pop p-6 text-center">
-            <div id="client-waiting" class="space-y-12"><div class="w-48 h-48 bg-white rounded-[5rem] flex items-center justify-center mx-auto text-9xl shadow-2xl animate-bounce" id="my-avatar-display">👤</div><h2 id="waiting-status-text" class="text-4xl font-black uppercase text-slate-800 tracking-tighter">Очаквай въпрос...</h2></div>
-            <div id="client-question" class="hidden w-full max-w-3xl bg-white p-20 rounded-[5rem] shadow-2xl border-t-[20px] border-indigo-100"><h3 id="live-q-text-client" class="text-3xl font-black mb-16 leading-tight">...</h3><div id="live-options-client" class="grid grid-cols-1 gap-4"></div></div>
-            <div id="client-finished" class="hidden bg-white p-24 rounded-[5rem] shadow-2xl border-4 border-indigo-600 space-y-10"><h2 class="text-5xl font-black">Тестът приключи!</h2><div class="text-[10rem] font-black text-indigo-600 leading-none" id="final-score-display">0</div><button onclick="location.reload()" class="w-full py-8 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase shadow-lg">Начало</button></div>
+        <div id="screen-finish" class="hidden py-20 text-center animate-pop">
+            <h2 class="text-3xl sm:text-7xl font-black text-slate-900 mb-6 tracking-tighter">Браво! 🎉</h2>
+            <div id="res-score" class="text-6xl sm:text-[12rem] font-black text-indigo-600 mb-10 leading-none">0/0</div>
+            <button onclick="location.reload()" class="py-4 sm:py-6 px-10 sm:px-16 bg-slate-900 text-white rounded-xl sm:rounded-[2.5rem] font-black uppercase shadow-xl hover:scale-105 transition-transform text-xs sm:text-base">Начало</button>
         </div>
 
         <!-- Modals -->
-        <div id="modal-q" class="fixed inset-0 bg-slate-900/90 backdrop-blur-xl hidden items-center justify-center p-6 z-[2000]">
-            <div class="bg-white w-full max-w-2xl rounded-[5rem] p-16 animate-pop flex flex-col gap-8 shadow-2xl">
-                <div class="flex items-center justify-between"><h2 class="text-4xl font-black">Нов въпрос</h2><span id="m-time" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-xl">00:00</span></div>
-                <div class="grid grid-cols-2 gap-4">
-                    <select id="m-type" onchange="window.updateModalFields()" class="p-6 bg-slate-50 border-2 rounded-[2rem] font-black outline-none"><option value="single">Един верен</option><option value="multiple">Няколко верни</option><option value="boolean">Вярно/Невярно</option><option value="open">Отворен</option></select>
-                    <input type="number" id="m-points" value="1" min="1" class="p-6 bg-slate-50 border-2 rounded-[2rem] font-black text-center text-xl">
+        <div id="modal-q" class="fixed inset-0 bg-slate-900/95 backdrop-blur-xl hidden items-center justify-center p-4 z-[2000]">
+            <div class="bg-white w-full max-w-2xl rounded-[1.5rem] sm:rounded-[5rem] p-6 sm:p-16 animate-pop flex flex-col gap-4 sm:gap-8 shadow-2xl max-h-[95vh] overflow-y-auto">
+                <div class="flex items-center justify-between"><h2 class="text-xl sm:text-4xl font-black">Нов въпрос</h2><span id="m-time" class="bg-indigo-600 text-white px-4 py-2 rounded-xl font-black text-sm sm:text-xl">00:00</span></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <select id="m-type" onchange="window.updateModalFields()" class="p-3 sm:p-6 bg-slate-50 border-2 rounded-xl sm:rounded-[2rem] font-black outline-none text-[10px] sm:text-base"><option value="single">Един верен</option><option value="multiple">Няколко верни</option><option value="boolean">Вярно/Невярно</option><option value="open">Отворен</option></select>
+                    <input type="number" id="m-points" value="1" min="1" class="p-3 sm:p-6 bg-slate-50 border-2 rounded-xl sm:rounded-[2rem] font-black text-center text-xs sm:text-xl">
                 </div>
-                <textarea id="m-text" placeholder="Задайте въпрос..." class="w-full p-8 bg-slate-50 rounded-[2.5rem] font-black border-2 outline-none text-xl resize-none shadow-inner" rows="3"></textarea>
-                <div id="m-opts-container" class="space-y-4 max-h-[300px] overflow-y-auto custom-scrollbar"></div>
-                <button onclick="window.saveQuestion()" class="w-full bg-indigo-600 text-white py-8 rounded-[2.5rem] font-black shadow-2xl uppercase hover:bg-indigo-700 transition-all">Запази въпроса</button>
-                <button onclick="document.getElementById('modal-q').classList.add('hidden')" class="text-slate-400 font-black uppercase text-xs">Отказ</button>
+                <textarea id="m-text" placeholder="Текст на въпроса..." class="w-full p-5 sm:p-8 bg-slate-50 rounded-xl sm:rounded-[2.5rem] font-black border-2 outline-none text-sm sm:text-xl resize-none shadow-inner" rows="3"></textarea>
+                <div id="m-opts-container" class="space-y-2 sm:space-y-4"></div>
+                <button onclick="window.saveQuestion()" class="w-full bg-indigo-600 text-white py-4 sm:py-8 rounded-xl sm:rounded-[2.5rem] font-black shadow-2xl uppercase hover:bg-indigo-700 transition-all text-xs sm:text-base">Запази въпроса</button>
+                <button onclick="document.getElementById('modal-q').classList.add('hidden')" class="text-slate-400 font-black uppercase text-[9px] text-center">Отказ</button>
             </div>
         </div>
 
-        <div id="modal-share" class="fixed inset-0 bg-slate-900/90 backdrop-blur-xl hidden items-center justify-center p-6 z-[2500]">
-            <div class="bg-white w-full max-w-lg rounded-[4rem] p-12 shadow-2xl animate-pop text-center space-y-8">
-                <h2 class="text-3xl font-black text-slate-900 leading-tight">Код за индивидуално решаване</h2>
-                <textarea id="share-code-display" readonly class="w-full p-6 bg-slate-50 rounded-3xl border font-mono text-xs break-all h-32 outline-none shadow-inner"></textarea>
-                <div class="grid grid-cols-2 gap-4">
-                    <button onclick="window.copyShareCode()" class="bg-indigo-600 text-white py-6 rounded-3xl font-black uppercase shadow-xl hover:bg-indigo-700">Копирай</button>
-                    <button onclick="document.getElementById('modal-share').classList.add('hidden')" class="bg-slate-100 text-slate-500 py-6 rounded-3xl font-black uppercase">Затвори</button>
+        <div id="modal-share" class="fixed inset-0 bg-slate-900/90 backdrop-blur-xl hidden items-center justify-center p-4 z-[2500]">
+            <div class="bg-white w-full max-w-lg rounded-[1.5rem] sm:rounded-[4rem] p-6 sm:p-12 shadow-2xl animate-pop text-center space-y-6">
+                <h2 class="text-lg sm:text-3xl font-black text-slate-900">Код за споделяне</h2>
+                <textarea id="share-code-display" readonly class="w-full p-4 bg-slate-50 rounded-xl sm:rounded-3xl border font-mono text-[9px] sm:text-xs break-all h-32 outline-none shadow-inner"></textarea>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="window.copyShareCode()" class="bg-indigo-600 text-white py-4 rounded-xl sm:rounded-3xl font-black uppercase shadow-xl hover:bg-indigo-700 text-[10px] sm:text-base">Копирай</button>
+                    <button onclick="document.getElementById('modal-share').classList.add('hidden')" class="bg-slate-100 text-slate-500 py-4 rounded-xl sm:rounded-3xl font-black uppercase text-[10px]">Затвори</button>
                 </div>
             </div>
         </div>
 
         <!-- Teacher Auth -->
-        <div id="screen-teacher-auth" class="hidden py-20 animate-pop"><div class="max-w-xl mx-auto bg-white p-20 rounded-[5rem] border shadow-2xl text-center space-y-10"><h2 class="text-3xl font-black">Вход Учител</h2><input type="password" id="auth-code" placeholder="Въведете код..." class="w-full p-8 bg-slate-50 rounded-[2.5rem] border-4 text-center text-4xl font-black tracking-widest outline-none shadow-inner"><button onclick="window.handleTeacherAuth()" class="w-full py-8 bg-indigo-600 text-white rounded-[2.5rem] font-black uppercase shadow-2xl hover:bg-indigo-700 transition-all">Влез</button></div></div>
+        <div id="screen-teacher-auth" class="hidden py-10 animate-pop">
+            <div class="max-w-xl mx-auto bg-white p-8 sm:p-20 rounded-[2rem] sm:rounded-[5rem] border shadow-2xl text-center space-y-6 sm:space-y-10">
+                <h2 class="text-xl sm:text-3xl font-black">Вход Учител</h2>
+                <input type="password" id="auth-code" placeholder="Въведете код..." class="w-full p-5 sm:p-8 bg-slate-50 rounded-xl sm:rounded-[2.5rem] border-4 text-center text-2xl sm:text-4xl font-black tracking-widest outline-none shadow-inner">
+                <button onclick="window.handleTeacherAuth()" class="w-full py-5 sm:py-8 bg-indigo-600 text-white rounded-xl sm:rounded-[2.5rem] font-black uppercase shadow-2xl hover:bg-indigo-700 transition-all text-xs sm:text-base">Влез</button>
+            </div>
+        </div>
     </div>
 </body>
 </html>
