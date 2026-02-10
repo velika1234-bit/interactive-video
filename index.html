@@ -27,11 +27,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, collectionGroup, doc, setDoc, getDoc, onSnapshot, serverTimestamp, updateDoc, deleteDoc, addDoc, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-    
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, serverTimestamp, updateDoc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence, inMemoryPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // --- FIREBASE CONFIGURATION ---
         const firebaseConfig = {
@@ -101,7 +97,6 @@
             lastAuthUid = incomingUid;
             user = u; 
             window.hideAuthLoader?.();
-            document.getElementById('auth-loader')?.classList.add('hidden');
             
             if (user) {
                 const isAnon = user.isAnonymous;
@@ -128,7 +123,12 @@
         });
 
         const initAuth = async () => {
-            await setPersistence(auth, browserLocalPersistence);
+            try {
+                await setPersistence(auth, browserLocalPersistence);
+            } catch (error) {
+                console.warn('Local persistence unavailable, falling back to in-memory auth persistence.', error);
+                await setPersistence(auth, inMemoryPersistence);
+            }
         };
 
         setTimeout(() => {
@@ -140,10 +140,6 @@
             console.error('Auth init error:', error);
             window.hideAuthLoader?.();
         });
-            if (loader && !loader.classList.contains('hidden')) loader.classList.add('hidden');
-        }, 4000);
-
-        initAuth();
 
         // --- HELPER FUNCTIONS ---
         window.decodeQuizCode = (code) => {
@@ -303,7 +299,6 @@
                     const cred = await createUserWithEmailAndPassword(auth, email, pass);
                     await setDoc(doc(db, 'artifacts', appId, 'users', cred.user.uid, 'settings', 'profile'), { 
                         role: 'teacher', email: email, emailNormalized: email.toLowerCase(), activatedAt: serverTimestamp() 
-                        role: 'teacher', email: email, activatedAt: serverTimestamp() 
                     });
                     window.showMessage("Успешна регистрация!");
                     window.switchScreen('teacher-dashboard');
@@ -390,7 +385,6 @@
                 soloResults = [];
                 renderSoloResults();
             });
-            }, (error) => console.error("Solo results error:", error));
             unsubscribes.push(unsub);
         };
 
@@ -448,7 +442,6 @@
             }
 
             body.innerHTML = sortedResults.map(r => `
-            body.innerHTML = soloResults.sort((a,b) => b.timestamp - a.timestamp).map(r => `
                 <tr class="border-b text-[10px] sm:text-xs hover:bg-slate-50">
                     <td class="py-3 px-4 font-black text-slate-700">${r.studentName}</td>
                     <td class="py-3 px-4 text-slate-500 truncate max-w-[120px]">${r.quizTitle}</td>
@@ -507,10 +500,6 @@
                 });
             };
             const unsub = subscribeHostParticipants(true);
-            const unsub = onSnapshot(getParticipantsCollection(sessionDocId), (snap) => {
-                lastFetchedParticipants = snap.docs.map(d => ({...d.data(), id: d.id}));
-                renderHostDashboard();
-            });
             unsubscribes.push(unsub);
         };
 
@@ -555,7 +544,6 @@
             if (!confirm("Сигурни ли сте, че искате да премахнете този участник?")) return;
             try {
                 await deleteDoc(getActiveParticipantRef(sessionDocId, id));
-                await deleteDoc(getParticipantRef(sessionDocId, id));
                 window.showMessage("Участникът е премахнат.", "info");
             } catch (e) {
                 console.error(e);
@@ -608,7 +596,6 @@
             
             // Dynamic Leaderboard Sorting
             document.getElementById('host-results-body').innerHTML = [...lastFetchedParticipants]
-            document.getElementById('host-results-body').innerHTML = lastFetchedParticipants
                 .sort((a,b) => b.score - a.score)
                 .map((p, idx) => `
                 <tr class="border-b transition-all hover:bg-slate-50 animate-pop">
@@ -650,7 +637,6 @@
 
             // Rows
             [...lastFetchedParticipants].sort((a,b)=>b.score-a.score).forEach((p,i) => {
-            lastFetchedParticipants.sort((a,b)=>b.score-a.score).forEach((p,i) => {
                 let row = [
                     (i+1),
                     p.name,
@@ -760,9 +746,6 @@
                 const participantRef = getLegacyParticipantRef(uid);
                 const pSnap = await getDoc(participantRef);
                 currentParticipantRef = participantRef;
-                const participantRef = getParticipantRef(pin, uid);
-                currentParticipantRef = participantRef;
-                const pSnap = await getDoc(participantRef);
                 
                 if (pSnap.exists() && pSnap.data().sessionId === pin) {
                      // RESTORE STATE
@@ -921,7 +904,6 @@
 
             try {
                 await updateDoc(currentParticipantRef || getActiveParticipantRef(sessionID, user.uid), updatePayload);
-                await updateDoc(currentParticipantRef || getParticipantRef(sessionID, user.uid), updatePayload);
                 document.getElementById('waiting-status-text').innerText = isCorrect ? "ВЕРЕН ОТГОВОР! ✨" : "ГРЕШЕН ОТГОВОР... ❌";
             } catch (e) {
                 document.getElementById('waiting-status-text').innerText = "Грешка при изпращане!";
@@ -937,7 +919,6 @@
             const name = prompt("Вашето име:"); if (!name) return;
             studentNameValue = name; currentQuiz = decoded; 
             currentQuizOwnerId = await window.resolveTeacherUidFromCode(decoded);
-            currentQuizOwnerId = decoded.ownerId || decoded.teacherId || null;
             
             // --- FIX START: Authenticate user if needed ---
             if (!auth.currentUser) {
@@ -1037,7 +1018,6 @@
                 const resId = `${currentUser.uid}_${currentQuiz.v.replace(/[^a-zA-Z0-9]/g, '')}_${Date.now()}`;
                 if (!currentQuizOwnerId) {
                     window.showMessage("Кодът няма валиден собственик (учител). Резултатът не е записан.", "error");
-                    window.showMessage("Този код е стар и няма собственик. Резултатът не е записан в облака.", "error");
                     return;
                 }
                 await setDoc(doc(getTeacherSoloResultsCollection(currentQuizOwnerId), resId), {
@@ -1048,7 +1028,6 @@
                     userId: currentUser.uid,
                     teacherOwnerId: currentQuizOwnerId,
                     teacherOwnerEmail: currentQuiz.ownerEmail || currentQuiz.teacherEmail || null
-                    userId: currentUser.uid
                 });
             }
             // --- FIX END ---
@@ -1198,7 +1177,6 @@
         window.showShareCode = (id) => {
             const q = myQuizzes.find(x => x.id === id);
             const code = btoa(unescape(encodeURIComponent(JSON.stringify({v:q.v, q:q.questions, title:q.title, ownerId:user?.uid || null, ownerEmail:user?.email || null}))));
-            const code = btoa(unescape(encodeURIComponent(JSON.stringify({v:q.v, q:q.questions, title:q.title, ownerId:user?.uid || null}))));
             document.getElementById('share-code-display').value = code;
             document.getElementById('modal-share').classList.remove('hidden'); document.getElementById('modal-share').classList.add('flex');
         };
@@ -1246,11 +1224,10 @@
 <body class="bg-slate-50 min-h-screen">
 
     <!-- Лоадер -->
-    <div id="auth-loader" class="fixed inset-0 bg-white z-[999] flex flex-col items-center justify-center text-center p-6">
+    <div id="auth-loader" class="hidden fixed inset-0 bg-white z-[999] flex flex-col items-center justify-center text-center p-6" aria-hidden="true">
         <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
         <p class="mt-4 font-black text-slate-400 uppercase text-[10px] tracking-widest">Зареждане на системата...</p>
         <button onclick="window.hideAuthLoader && window.hideAuthLoader()" class="mt-8 text-[9px] uppercase font-bold text-slate-300 underline">Влез ръчно</button>
-        <button onclick="document.getElementById('auth-loader').classList.add('hidden')" class="mt-8 text-[9px] uppercase font-bold text-slate-300 underline">Влез ръчно</button>
     </div>
 
     <div id="msg-container" class="fixed top-4 sm:top-8 left-1/2 -translate-x-1/2 z-[3000] w-full max-w-[280px] sm:max-w-sm px-4 pointer-events-none"></div>
