@@ -6,30 +6,16 @@
     <title>VideoQuiz Ultimate - Professional Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Библиотека за истински Excel файлове (.xlsx) -->
+    <!-- Library for real Excel files (.xlsx) -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.mini.min.js"></script>
-    <script>
-        // Fallback: ако module script или Tailwind CDN не се изпълнят, не оставяй екрана на loader завинаги.
-        window.hideAuthLoader = () => {
-            const loader = document.getElementById('auth-loader');
-            if (!loader) return;
-            loader.classList.add('hidden');
-            loader.style.display = 'none';
-            loader.style.visibility = 'hidden';
-        };
-
-        window.addEventListener('load', () => {
-            setTimeout(() => window.hideAuthLoader?.(), 1500);
-        });
-        setTimeout(() => window.hideAuthLoader?.(), 8000);
-    </script>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, collectionGroup, doc, setDoc, getDoc, onSnapshot, serverTimestamp, updateDoc, deleteDoc, addDoc, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence, inMemoryPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, serverTimestamp, updateDoc, deleteDoc, addDoc, query, where, limit, getDocs, collectionGroup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // --- FIREBASE CONFIGURATION ---
+        // ВАШИТЕ НАСТРОЙКИ
         const firebaseConfig = {
             apiKey: "AIzaSyA0WhbnxygznaGCcdxLBHweZZThezUO314",
             authDomain: "videoquiz-ultimate.firebaseapp.com",
@@ -39,7 +25,9 @@
             appId: "1:793138692820:web:8ee2418d28d47fca6bf141"
         };
 
-        const appId = 'videoquiz-ultimate-live'; 
+        // ВАЖНО: Фиксираме ID-то, за да съвпада точно с правилата, които въведохте в конзолата
+        const finalAppId = 'videoquiz-ultimate-live'; 
+        
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
@@ -71,13 +59,15 @@
         let currentQuizOwnerId = null;
         let currentParticipantRef = null;
         let participantStorageMode = 'legacy';
+        let rulesModalShown = false;
 
-        const getTeacherSoloResultsCollection = (teacherId) => collection(db, 'artifacts', appId, 'users', teacherId, 'solo_results');
-        const getSessionRefById = (id) => doc(db, 'artifacts', appId, 'public', 'data', 'sessions', id);
-        const getParticipantsCollection = (id) => collection(db, 'artifacts', appId, 'public', 'data', 'sessions', id, 'participants');
-        const getParticipantRef = (sessionId, participantId) => doc(db, 'artifacts', appId, 'public', 'data', 'sessions', sessionId, 'participants', participantId);
-        const getLegacyParticipantsCollection = () => collection(db, 'artifacts', appId, 'public', 'data', 'participants');
-        const getLegacyParticipantRef = (participantId) => doc(db, 'artifacts', appId, 'public', 'data', 'participants', participantId);
+        // Helper to get consistent paths
+        const getTeacherSoloResultsCollection = (teacherId) => collection(db, 'artifacts', finalAppId, 'users', teacherId, 'solo_results');
+        const getSessionRefById = (id) => doc(db, 'artifacts', finalAppId, 'public', 'data', 'sessions', id);
+        const getParticipantsCollection = (id) => collection(db, 'artifacts', finalAppId, 'public', 'data', 'sessions', id, 'participants');
+        const getParticipantRef = (sessionId, participantId) => doc(db, 'artifacts', finalAppId, 'public', 'data', 'sessions', sessionId, 'participants', participantId);
+        const getLegacyParticipantsCollection = () => collection(db, 'artifacts', finalAppId, 'public', 'data', 'participants');
+        const getLegacyParticipantRef = (participantId) => doc(db, 'artifacts', finalAppId, 'public', 'data', 'participants', participantId);
         const getActiveParticipantRef = (sessionId, participantId) => participantStorageMode === 'legacy' ? getLegacyParticipantRef(participantId) : getParticipantRef(sessionId, participantId);
 
         // New variable for storing temporary selection
@@ -91,55 +81,65 @@
             if (lastAuthUid !== incomingUid) {
                 myQuizzes = [];
                 soloResults = [];
-                renderMyQuizzes();
-                renderSoloResults();
+                // Only render if we have UI ready, otherwise wait for switchScreen
+                if (document.getElementById('my-quizzes-list')) renderMyQuizzes();
+                if (document.getElementById('solo-results-body')) renderSoloResults();
             }
             lastAuthUid = incomingUid;
             user = u; 
-            window.hideAuthLoader?.();
+            document.getElementById('auth-loader')?.classList.add('hidden');
             
             if (user) {
                 const isAnon = user.isAnonymous;
                 const uidDisplay = isAnon ? `Анонимен (${user.uid.substring(0,5)}...)` : user.email;
-                document.getElementById('debug-uid').innerText = uidDisplay;
+                const debugUidEl = document.getElementById('debug-uid');
+                if(debugUidEl) debugUidEl.innerText = uidDisplay;
 
-                const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
+                const profileRef = doc(db, 'artifacts', finalAppId, 'users', user.uid, 'settings', 'profile');
                 try {
                     const profileSnap = await getDoc(profileRef);
                     if (profileSnap.exists() && profileSnap.data().role === 'teacher') {
                         isTeacher = true;
                         window.loadMyQuizzes();
                         window.loadSoloResults();
+                        // Auto-redirect only if on welcome screen
                         if (!document.getElementById('screen-welcome').classList.contains('hidden')) {
                             window.switchScreen('teacher-dashboard');
                         }
                     } else if (!isAnon) {
                          window.switchScreen('welcome');
                     }
-                } catch (e) { console.error("Cloud Access Error:", e); }
+                } catch (e) { 
+                    console.error("Cloud Access Error:", e); 
+                    if (e.code === 'permission-denied') window.showRulesHelpModal();
+                }
             } else {
                 window.switchScreen('welcome');
             }
         });
 
         const initAuth = async () => {
-            try {
-                await setPersistence(auth, browserLocalPersistence);
-            } catch (error) {
-                console.warn('Local persistence unavailable, falling back to in-memory auth persistence.', error);
-                await setPersistence(auth, inMemoryPersistence);
+            await setPersistence(auth, browserLocalPersistence);
+            
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                try {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } catch (e) {
+                    if (e.code === 'auth/custom-token-mismatch') {
+                        console.warn("Служебният токен е игнориран (Private Config).");
+                    } else {
+                        console.error("Custom token auth failed", e);
+                    }
+                }
             }
         };
 
         setTimeout(() => {
             const loader = document.getElementById('auth-loader');
-            if (loader && !loader.classList.contains('hidden')) window.hideAuthLoader?.();
+            if (loader && !loader.classList.contains('hidden')) loader.classList.add('hidden');
         }, 4000);
 
-        initAuth().catch((error) => {
-            console.error('Auth init error:', error);
-            window.hideAuthLoader?.();
-        });
+        initAuth();
 
         // --- HELPER FUNCTIONS ---
         window.decodeQuizCode = (code) => {
@@ -261,6 +261,14 @@
              }
         };
 
+        // --- PERMISSION ERROR HANDLER ---
+        window.showRulesHelpModal = () => {
+            if (rulesModalShown) return;
+            rulesModalShown = true;
+            document.getElementById('modal-rules-help').classList.remove('hidden');
+            document.getElementById('modal-rules-help').classList.add('flex');
+        };
+
         // --- AUTH HANDLERS ---
         window.toggleAuthMode = () => {
             authMode = authMode === 'login' ? 'register' : 'login';
@@ -289,6 +297,10 @@
             if (!email || !pass) return window.showMessage("Попълнете всички полета!", "error");
             if (pass.length < 6) return window.showMessage("Паролата трябва да е поне 6 символа.", "error");
 
+            if (auth.currentUser && auth.currentUser.isAnonymous) {
+                await signOut(auth);
+            }
+
             window.showMessage("Обработка...", "info");
 
             try {
@@ -296,16 +308,55 @@
                     const code = document.getElementById('auth-teacher-code').value.trim();
                     if (code !== MASTER_TEACHER_CODE) return window.showMessage("Грешен код за учител!", "error");
 
-                    const cred = await createUserWithEmailAndPassword(auth, email, pass);
-                    await setDoc(doc(db, 'artifacts', appId, 'users', cred.user.uid, 'settings', 'profile'), { 
-                        role: 'teacher', email: email, emailNormalized: email.toLowerCase(), activatedAt: serverTimestamp() 
-                    });
-                    window.showMessage("Успешна регистрация!");
-                    window.switchScreen('teacher-dashboard');
+                    try {
+                        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+                        await setDoc(doc(db, 'artifacts', finalAppId, 'users', cred.user.uid, 'settings', 'profile'), { 
+                            role: 'teacher', 
+                            email: email, 
+                            emailNormalized: email.toLowerCase(), 
+                            activatedAt: serverTimestamp() 
+                        });
+                        window.showMessage("Успешна регистрация!");
+                        window.switchScreen('teacher-dashboard');
+                    } catch (innerError) {
+                         if (innerError.code === 'auth/operation-not-allowed') {
+                             console.warn("Email auth disabled, falling back to anonymous teacher profile.");
+                             let anonUser = auth.currentUser;
+                             if (!anonUser) {
+                                const anonCred = await signInAnonymously(auth);
+                                anonUser = anonCred.user;
+                             }
+                             
+                             await setDoc(doc(db, 'artifacts', finalAppId, 'users', anonUser.uid, 'settings', 'profile'), { 
+                                role: 'teacher', 
+                                email: email + " (Guest)", 
+                                emailNormalized: email.toLowerCase(), 
+                                activatedAt: serverTimestamp(),
+                                isFallback: true
+                            });
+                            window.showMessage("Режим 'Гост-Учител' (Операцията не е позволена, проверете Settings).", "info");
+                            window.switchScreen('teacher-dashboard');
+                         } else if (innerError.code === 'permission-denied') {
+                             window.showRulesHelpModal();
+                         } else {
+                             throw innerError;
+                         }
+                    }
+
                 } else {
-                    await signInWithEmailAndPassword(auth, email, pass);
-                    window.showMessage("Добре дошли отново!");
-                    window.switchScreen('teacher-dashboard');
+                    try {
+                        await signInWithEmailAndPassword(auth, email, pass);
+                        window.showMessage("Добре дошли отново!");
+                        window.switchScreen('teacher-dashboard');
+                    } catch (innerError) {
+                         if (innerError.code === 'auth/operation-not-allowed') {
+                             window.showMessage("Грешка в конфигурацията на Firebase (Auth not allowed).", "error");
+                         } else if (innerError.code === 'permission-denied') {
+                             window.showRulesHelpModal();
+                         } else {
+                             throw innerError;
+                         }
+                    }
                 }
             } catch (error) {
                 console.error(error);
@@ -318,10 +369,10 @@
             await signOut(auth);
             window.myQuizzes = [];
             soloResults = [];
-            renderMyQuizzes();
-            renderSoloResults();
-            window.switchScreen('welcome');
-            window.showMessage("Излязохте успешно.");
+            window.showMessage("Излязохте успешно. Презареждане...");
+            setTimeout(() => {
+                location.reload(); 
+            }, 1000);
         };
 
         // --- IMPORT / EXPORT LOGIC ---
@@ -354,20 +405,26 @@
             if (!user) return;
             window.showMessage("Импортиране...");
             try {
-                await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'my_quizzes'), { 
+                await addDoc(collection(db, 'artifacts', finalAppId, 'users', user.uid, 'my_quizzes'), { 
                     title: data.title + " (Импортиран)", v: data.v, questions: data.q, createdAt: serverTimestamp() 
                 }); 
                 window.showMessage("Урокът е добавен!", "info");
-            } catch (e) { window.showMessage("Грешка при импорт!", "error"); }
+            } catch (e) { 
+                if (e.code === 'permission-denied') window.showRulesHelpModal();
+                else window.showMessage("Грешка при импорт!", "error"); 
+            }
         };
 
         // --- FIREBASE DATA OPS ---
         window.loadMyQuizzes = async () => {
             if (!user) return;
-            const q = collection(db, 'artifacts', appId, 'users', user.uid, 'my_quizzes');
+            const q = collection(db, 'artifacts', finalAppId, 'users', user.uid, 'my_quizzes');
             const unsub = onSnapshot(q, (snap) => {
                 myQuizzes = snap.docs.map(d => ({...d.data(), id: d.id}));
                 renderMyQuizzes();
+            }, (error) => {
+                console.error("My quizzes error:", error);
+                if (error.code === 'permission-denied') window.showRulesHelpModal();
             });
             unsubscribes.push(unsub);
         };
@@ -382,6 +439,7 @@
                 renderSoloResults();
             }, (error) => {
                 console.error("Solo results error:", error);
+                if (error.code === 'permission-denied') window.showRulesHelpModal();
                 soloResults = [];
                 renderSoloResults();
             });
@@ -396,7 +454,8 @@
                     window.showMessage("Записът е изтрит.", "info");
                 } catch (e) {
                     console.error(e);
-                    window.showMessage("Грешка при изтриване.", "error");
+                    if (e.code === 'permission-denied') window.showRulesHelpModal();
+                    else window.showMessage("Грешка при изтриване.", "error");
                 }
             }
         };
@@ -475,11 +534,16 @@
             
             // Calculate total points
             const totalPoints = currentQuiz.q.reduce((a, q) => a + (q.points || 1), 0);
-
-            await setDoc(getSessionRefById(sessionDocId), { 
-                activeQ: -1, status: 'waiting', hostId: user.uid, pin: sessionID, timestamp: serverTimestamp(),
-                totalPoints: totalPoints
-            });
+            
+            try {
+                await setDoc(getSessionRefById(sessionDocId), { 
+                    activeQ: -1, status: 'waiting', hostId: user.uid, pin: sessionID, timestamp: serverTimestamp(),
+                    totalPoints: totalPoints
+                });
+            } catch(e) {
+                console.error(e);
+                if(e.code === 'permission-denied') window.showRulesHelpModal();
+            }
 
             participantStorageMode = 'legacy';
             const subscribeHostParticipants = (legacy = false) => {
@@ -493,13 +557,14 @@
                 }, (error) => {
                     console.error("Participants snapshot error:", error);
                     if (!legacy) {
-                        window.showMessage("Ограничен достъп за новия формат. Включен е режим за съвместимост.", "error");
                         const fallbackUnsub = subscribeHostParticipants(true);
                         unsubscribes.push(fallbackUnsub);
                     }
+                    if(error.code === 'permission-denied') window.showRulesHelpModal();
                 });
             };
-            const unsub = subscribeHostParticipants(true);
+            
+            const unsub = subscribeHostParticipants(false); 
             unsubscribes.push(unsub);
         };
 
@@ -547,7 +612,8 @@
                 window.showMessage("Участникът е премахнат.", "info");
             } catch (e) {
                 console.error(e);
-                window.showMessage("Грешка при изтриване.", "error");
+                if(e.code === 'permission-denied') window.showRulesHelpModal();
+                else window.showMessage("Грешка при изтриване.", "error");
             }
         };
 
@@ -577,7 +643,7 @@
             const progressStatsText = document.getElementById('progress-stats-text');
             const progressPercent = document.getElementById('progress-percent');
             
-            if (totalAnswers >= 0) {
+            if (totalAnswers >= 0 && progressBar) {
                 const correctPct = totalAnswers > 0 ? (totalCorrect / totalAnswers) * 100 : 0;
                 progressCorrect.style.width = correctPct + '%';
                 progressWrong.style.width = (100 - correctPct) + '%';
@@ -595,7 +661,7 @@
             }
             
             // Dynamic Leaderboard Sorting
-            document.getElementById('host-results-body').innerHTML = [...lastFetchedParticipants]
+            document.getElementById('host-results-body').innerHTML = lastFetchedParticipants
                 .sort((a,b) => b.score - a.score)
                 .map((p, idx) => `
                 <tr class="border-b transition-all hover:bg-slate-50 animate-pop">
@@ -616,11 +682,15 @@
 
         window.finishLiveSession = async () => {
             if (!sessionID) return;
-            await updateDoc(getSessionRefById(sessionDocId), { status: 'finished' });
-            // Show the container with both buttons
-            document.getElementById('export-buttons-container').classList.remove('hidden');
-            document.getElementById('export-buttons-container').classList.add('flex');
-            window.showMessage("Сесията приключи!");
+            try {
+                await updateDoc(getSessionRefById(sessionDocId), { status: 'finished' });
+                // Show the container with both buttons
+                document.getElementById('export-buttons-container').classList.remove('hidden');
+                document.getElementById('export-buttons-container').classList.add('flex');
+                window.showMessage("Сесията приключи!");
+            } catch(e) {
+                 if(e.code === 'permission-denied') window.showRulesHelpModal();
+            }
         };
 
         // --- EXCEL & PRINT LOGIC ---
@@ -635,7 +705,7 @@
             currentQuiz.q.forEach((_, idx) => header.push(`Въпрос ${idx + 1}`));
             data.push(header);
 
-            // Rows
+            // Rows - Fixed duplicate loop from original code
             [...lastFetchedParticipants].sort((a,b)=>b.score-a.score).forEach((p,i) => {
                 let row = [
                     (i+1),
@@ -743,19 +813,40 @@
                 
                 // CHECK if user already exists in this session to prevent overwrite
                 participantStorageMode = 'legacy';
-                const participantRef = getLegacyParticipantRef(uid);
-                const pSnap = await getDoc(participantRef);
-                currentParticipantRef = participantRef;
+                const legacyPartRef = getLegacyParticipantRef(uid);
+                const sessionPartRef = getParticipantRef(pin, uid);
                 
-                if (pSnap.exists() && pSnap.data().sessionId === pin) {
+                // Check new system first
+                let pSnap = await getDoc(sessionPartRef);
+                let targetRef = sessionPartRef;
+                let found = false;
+
+                if (pSnap.exists()) {
+                    found = true;
+                } else {
+                    // Check legacy
+                    pSnap = await getDoc(legacyPartRef);
+                    if (pSnap.exists() && pSnap.data().sessionId === pin) {
+                         found = true;
+                         targetRef = legacyPartRef;
+                    }
+                }
+                
+                currentParticipantRef = targetRef;
+                
+                if (found) {
                      // RESTORE STATE
                      const d = pSnap.data();
                      liveScore = d.score || 0;
                      studentNameValue = d.name; // Keep original name
                      window.showMessage("Върнахте се в сесията!", "info");
                 } else {
-                    // NEW ENTRY
-                    await setDoc(participantRef, { 
+                    // NEW ENTRY - default to session path if possible (implied by write rule availability), but use legacy if that fails?
+                    // We'll try the legacy path for now as it seems to be the default for the user's setup
+                    targetRef = legacyPartRef; 
+                    currentParticipantRef = legacyPartRef;
+                    
+                    await setDoc(targetRef, { 
                         name: studentNameValue, sessionId: pin, avatar: randomAvatar, score: 0, 
                         finished: false, lastAnsweredIdx: -1, answers: {} 
                     });
@@ -784,11 +875,14 @@
                         document.getElementById('client-waiting').classList.remove('hidden');
                         document.getElementById('waiting-status-text').innerText = "Изчакай въпрос...";
                     }
+                }, (error) => {
+                     if(error.code === 'permission-denied') window.showRulesHelpModal();
                 });
                 unsubscribes.push(unsub);
             } catch (e) { 
                 console.error(e);
-                window.showMessage("Грешка при свързване.", "error"); 
+                if(e.code === 'permission-denied') window.showRulesHelpModal();
+                else window.showMessage("Грешка при свързване.", "error"); 
             }
         };
 
@@ -903,9 +997,12 @@
             updatePayload[`answers.${liveActiveQIdx}`] = isCorrect;
 
             try {
-                await updateDoc(currentParticipantRef || getActiveParticipantRef(sessionID, user.uid), updatePayload);
-                document.getElementById('waiting-status-text').innerText = isCorrect ? "ВЕРЕН ОТГОВОР! ✨" : "ГРЕШЕН ОТГОВОР... ❌";
+                if (currentParticipantRef) {
+                    await updateDoc(currentParticipantRef, updatePayload);
+                    document.getElementById('waiting-status-text').innerText = isCorrect ? "ВЕРЕН ОТГОВОР! ✨" : "ГРЕШЕН ОТГОВОР... ❌";
+                }
             } catch (e) {
+                console.error(e);
                 document.getElementById('waiting-status-text').innerText = "Грешка при изпращане!";
                 setTimeout(() => window.submitLiveFinal(isCorrect), 2000); // Retry logic
             }
@@ -1010,7 +1107,8 @@
             window.switchScreen('finish');
             const totalPossible = currentQuiz.q.reduce((acc, q) => acc + (q.points || 1), 0);
             const scoreText = `${scoreCount} / ${totalPossible}`;
-            document.getElementById('res-score').innerText = scoreText;
+            const finalScoreEl = document.getElementById('res-score');
+            if (finalScoreEl) finalScoreEl.innerText = scoreText;
             
             // --- FIX START: Use correct user variable ---
             const currentUser = auth.currentUser || user;
@@ -1020,15 +1118,19 @@
                     window.showMessage("Кодът няма валиден собственик (учител). Резултатът не е записан.", "error");
                     return;
                 }
-                await setDoc(doc(getTeacherSoloResultsCollection(currentQuizOwnerId), resId), {
-                    studentName: studentNameValue, 
-                    quizTitle: currentQuiz.title || "Индивидуален тест", 
-                    score: scoreText, 
-                    timestamp: serverTimestamp(), 
-                    userId: currentUser.uid,
-                    teacherOwnerId: currentQuizOwnerId,
-                    teacherOwnerEmail: currentQuiz.ownerEmail || currentQuiz.teacherEmail || null
-                });
+                try {
+                    await setDoc(doc(getTeacherSoloResultsCollection(currentQuizOwnerId), resId), {
+                        studentName: studentNameValue, 
+                        quizTitle: currentQuiz.title || "Индивидуален тест", 
+                        score: scoreText, 
+                        timestamp: serverTimestamp(), 
+                        userId: currentUser.uid,
+                        teacherOwnerId: currentQuizOwnerId,
+                        teacherOwnerEmail: currentQuiz.ownerEmail || currentQuiz.teacherEmail || null
+                    });
+                } catch(e) {
+                     if(e.code === 'permission-denied') window.showRulesHelpModal();
+                }
             }
             // --- FIX END ---
         };
@@ -1166,16 +1268,21 @@
             try {
                 const data = { title, v: currentVideoId, questions, updatedAt: serverTimestamp() };
                 if (!editingQuizId) data.createdAt = serverTimestamp();
-                if (editingQuizId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'my_quizzes', editingQuizId), data);
-                else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'my_quizzes'), data);
+                if (editingQuizId) await updateDoc(doc(db, 'artifacts', finalAppId, 'users', user.uid, 'my_quizzes', editingQuizId), data);
+                else await addDoc(collection(db, 'artifacts', finalAppId, 'users', user.uid, 'my_quizzes'), data);
                 window.showMessage("Урокът е запазен!", "info");
                 editingQuizId = null;
                 window.switchScreen('teacher-dashboard'); 
-            } catch (e) { window.showMessage("Грешка при запис!", "error"); }
+            } catch (e) { 
+                if (e.code === 'permission-denied') window.showRulesHelpModal();
+                else window.showMessage("Грешка при запис!", "error"); 
+            }
         };
 
         window.showShareCode = (id) => {
             const q = myQuizzes.find(x => x.id === id);
+            // Removed duplicate 'const code' declaration from original file.
+            // Encoding ownerEmail allows us to link solo results back to teacher properly.
             const code = btoa(unescape(encodeURIComponent(JSON.stringify({v:q.v, q:q.questions, title:q.title, ownerId:user?.uid || null, ownerEmail:user?.email || null}))));
             document.getElementById('share-code-display').value = code;
             document.getElementById('modal-share').classList.remove('hidden'); document.getElementById('modal-share').classList.add('flex');
@@ -1198,7 +1305,7 @@
             window.loadEditorVideo(true); 
         };
 
-        window.deleteQuiz = async (id) => { if (user && confirm("Изтриване на урока?")) await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'my_quizzes', id)); };
+        window.deleteQuiz = async (id) => { if (user && confirm("Изтриване на урока?")) await deleteDoc(doc(db, 'artifacts', finalAppId, 'users', user.uid, 'my_quizzes', id)); };
 
         // --- YT API ---
         const tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api"; 
@@ -1224,10 +1331,10 @@
 <body class="bg-slate-50 min-h-screen">
 
     <!-- Лоадер -->
-    <div id="auth-loader" class="hidden fixed inset-0 bg-white z-[999] flex flex-col items-center justify-center text-center p-6" aria-hidden="true">
+    <div id="auth-loader" class="fixed inset-0 bg-white z-[999] flex flex-col items-center justify-center text-center p-6">
         <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
         <p class="mt-4 font-black text-slate-400 uppercase text-[10px] tracking-widest">Зареждане на системата...</p>
-        <button onclick="window.hideAuthLoader && window.hideAuthLoader()" class="mt-8 text-[9px] uppercase font-bold text-slate-300 underline">Влез ръчно</button>
+        <button onclick="document.getElementById('auth-loader').classList.add('hidden')" class="mt-8 text-[9px] uppercase font-bold text-slate-300 underline">Влез ръчно</button>
     </div>
 
     <div id="msg-container" class="fixed top-4 sm:top-8 left-1/2 -translate-x-1/2 z-[3000] w-full max-w-[280px] sm:max-w-sm px-4 pointer-events-none"></div>
@@ -1488,6 +1595,63 @@
                     <button onclick="window.submitImport()" class="bg-emerald-500 text-white py-5 rounded-2xl font-black uppercase shadow-xl text-[10px]">Импортирай</button>
                     <button onclick="document.getElementById('modal-import').classList.add('hidden')" class="bg-slate-100 text-slate-500 py-5 rounded-2xl font-black uppercase text-[10px]">Отказ</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- PERMISSION ERROR MODAL -->
+        <div id="modal-rules-help" class="fixed inset-0 bg-slate-900/95 backdrop-blur-xl hidden items-center justify-center p-4 z-[3000]">
+            <div class="bg-white w-full max-w-2xl rounded-[3rem] p-8 md:p-12 animate-pop flex flex-col gap-6 shadow-2xl max-h-[95vh] overflow-y-auto custom-scrollbar relative">
+                <button onclick="document.getElementById('modal-rules-help').classList.add('hidden')" class="absolute top-8 right-8 text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-8 h-8"></i>
+                </button>
+
+                <div class="text-center space-y-2">
+                    <div class="w-20 h-20 bg-rose-100 text-rose-500 rounded-3xl flex items-center justify-center mx-auto text-4xl mb-4 animate-bounce">⚠️</div>
+                    <h2 class="text-3xl font-black text-slate-900">Достъпът е отказан</h2>
+                    <p class="text-slate-500 font-bold">Базата данни във Firebase е "заключена".</p>
+                </div>
+
+                <div class="bg-slate-50 p-6 rounded-[2rem] border-2 border-indigo-100 space-y-4">
+                    <h3 class="font-black text-indigo-600 uppercase text-xs tracking-widest">Как да поправите това (стъпка по стъпка):</h3>
+                    <ol class="list-decimal pl-5 space-y-2 text-sm font-bold text-slate-700">
+                        <li>Отворете <a href="https://console.firebase.google.com/" target="_blank" class="text-indigo-600 underline">Firebase Console</a> и влезте във вашия проект.</li>
+                        <li>Отидете на <strong>Build</strong> -> <strong>Firestore Database</strong>.</li>
+                        <li>Кликнете на таба <strong>Rules</strong> (горе в средата).</li>
+                        <li>Изтрийте всичко там и поставете този код:</li>
+                    </ol>
+                    
+                    <div class="relative group">
+                        <pre class="bg-slate-900 text-slate-300 p-6 rounded-2xl font-mono text-xs overflow-x-auto select-all">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Основен път на приложението
+    match /artifacts/videoquiz-ultimate-live {
+      
+      // 1. ПУБЛИЧНИ ДАННИ (Сесии на живо)
+      match /public/data/{document=**} {
+        allow read, write: if true;
+      }
+
+      // 2. ДАННИ НА УЧИТЕЛЯ (Лична папка)
+      // Учителят има пълен контрол над всичко в своята папка
+      match /users/{userId}/{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // 3. ИЗКЛЮЧЕНИЕ ЗА РЕЗУЛТАТИ (Индивидуален режим)
+      // Позволяваме на учениците (всеки логнат, вкл. анонимно) да ЗАПИСВА резултат
+      match /users/{teacherId}/solo_results/{resultId} {
+         allow create: if request.auth != null;
+      }
+    }
+  }
+}</pre>
+                    </div>
+                    
+                    <p class="text-xs text-slate-400 text-center font-bold uppercase mt-2">След това натиснете "Publish" и презаредете тази страница.</p>
+                </div>
+
+                <button onclick="location.reload()" class="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black uppercase shadow-xl hover:bg-indigo-700 transition-all text-sm shadow-indigo-200">Готово, презареди!</button>
             </div>
         </div>
 
