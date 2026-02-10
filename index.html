@@ -31,6 +31,7 @@
 
         // --- GLOBAL STATE ---
         let user = null; 
+        let lastAuthUid = null;
         let isTeacher = false;
         let editingQuizId = null; 
         let editingQuestionIndex = null;
@@ -54,11 +55,15 @@
         let soloGameFinished = false; 
         let currentQuizOwnerId = null;
         let currentParticipantRef = null;
+        let participantStorageMode = 'legacy';
 
         const getTeacherSoloResultsCollection = (teacherId) => collection(db, 'artifacts', appId, 'users', teacherId, 'solo_results');
         const getSessionRefById = (id) => doc(db, 'artifacts', appId, 'public', 'data', 'sessions', id);
         const getParticipantsCollection = (id) => collection(db, 'artifacts', appId, 'public', 'data', 'sessions', id, 'participants');
         const getParticipantRef = (sessionId, participantId) => doc(db, 'artifacts', appId, 'public', 'data', 'sessions', sessionId, 'participants', participantId);
+        const getLegacyParticipantsCollection = () => collection(db, 'artifacts', appId, 'public', 'data', 'participants');
+        const getLegacyParticipantRef = (participantId) => doc(db, 'artifacts', appId, 'public', 'data', 'participants', participantId);
+        const getActiveParticipantRef = (sessionId, participantId) => participantStorageMode === 'legacy' ? getLegacyParticipantRef(participantId) : getParticipantRef(sessionId, participantId);
 
         // New variable for storing temporary selection
         window.tempLiveSelection = null;
@@ -67,6 +72,14 @@
 
         // --- AUTH LOGIC ---
         onAuthStateChanged(auth, async (u) => { 
+            const incomingUid = u?.uid || null;
+            if (lastAuthUid !== incomingUid) {
+                myQuizzes = [];
+                soloResults = [];
+                renderMyQuizzes();
+                renderSoloResults();
+            }
+            lastAuthUid = incomingUid;
             user = u; 
             document.getElementById('auth-loader')?.classList.add('hidden');
             
@@ -116,6 +129,41 @@
             }
         };
 
+        window.resolveTeacherUidFromCode = async (decoded) => {
+            if (!decoded) return null;
+            if (decoded.ownerId || decoded.teacherId) return decoded.ownerId || decoded.teacherId;
+
+            const ownerEmail = (decoded.ownerEmail || decoded.teacherEmail || '').trim().toLowerCase();
+            if (!ownerEmail) return null;
+
+            try {
+                const normalizedQ = query(
+                    collectionGroup(db, 'profile'),
+                    where('role', '==', 'teacher'),
+                    where('emailNormalized', '==', ownerEmail),
+                    limit(1)
+                );
+                const normalizedSnap = await getDocs(normalizedQ);
+                if (!normalizedSnap.empty) {
+                    return normalizedSnap.docs[0].ref.parent.parent?.id || null;
+                }
+
+                const fallbackQ = query(
+                    collectionGroup(db, 'profile'),
+                    where('role', '==', 'teacher'),
+                    where('email', '==', ownerEmail),
+                    limit(1)
+                );
+                const fallbackSnap = await getDocs(fallbackQ);
+                if (!fallbackSnap.empty) {
+                    return fallbackSnap.docs[0].ref.parent.parent?.id || null;
+                }
+            } catch (e) {
+                console.error('Owner email lookup failed:', e);
+            }
+            return null;
+        };
+
         window.formatTime = (s) => {
             const m = Math.floor(s / 60), r = Math.floor(s % 60);
             return `${m < 10 ? '0' + m : m}:${r < 10 ? '0' + r : r}`;
@@ -128,6 +176,23 @@
                 day: '2-digit', month: '2-digit', year: '2-digit', 
                 hour: '2-digit', minute: '2-digit' 
             });
+        };
+
+        const getTimestampMs = (value) => {
+            if (!value) return 0;
+            if (typeof value === 'number') return value;
+            if (typeof value?.toMillis === 'function') return value.toMillis();
+            if (typeof value?.toDate === 'function') return value.toDate().getTime();
+            const parsed = new Date(value).getTime();
+            return Number.isNaN(parsed) ? 0 : parsed;
+        };
+
+        const parseScoreValue = (scoreText) => {
+            if (!scoreText) return { score: 0, total: 0 };
+            const parts = String(scoreText).split('/').map(s => parseInt(s.trim(), 10));
+            const score = Number.isFinite(parts[0]) ? parts[0] : 0;
+            const total = Number.isFinite(parts[1]) ? parts[1] : 0;
+            return { score, total };
         };
 
         window.switchScreen = (name) => {
@@ -210,6 +275,7 @@
 
                     const cred = await createUserWithEmailAndPassword(auth, email, pass);
                     await setDoc(doc(db, 'artifacts', appId, 'users', cred.user.uid, 'settings', 'profile'), { 
+                        role: 'teacher', email: email, emailNormalized: email.toLowerCase(), activatedAt: serverTimestamp() 
                         role: 'teacher', email: email, activatedAt: serverTimestamp() 
                     });
                     window.showMessage("Успешна регистрация!");
@@ -229,6 +295,9 @@
         window.handleLogout = async () => {
             await signOut(auth);
             window.myQuizzes = [];
+            soloResults = [];
+            renderMyQuizzes();
+            renderSoloResults();
             window.switchScreen('welcome');
             window.showMessage("Излязохте успешно.");
         };
@@ -283,10 +352,17 @@
 
         window.loadSoloResults = async () => {
             if (!user) return;
+            soloResults = [];
+            renderSoloResults();
             const q = getTeacherSoloResultsCollection(user.uid);
             const unsub = onSnapshot(q, (snap) => {
                 soloResults = snap.docs.map(d => ({...d.data(), id: d.id}));
                 renderSoloResults();
+            }, (error) => {
+                console.error("Solo results error:", error);
+                soloResults = [];
+                renderSoloResults();
+            });
             }, (error) => console.error("Solo results error:", error));
             unsubscribes.push(unsub);
         };
@@ -327,6 +403,24 @@
         function renderSoloResults() {
             const body = document.getElementById('solo-results-body');
             if (!body) return;
+
+            const sortedResults = [...soloResults].sort((a, b) => getTimestampMs(b.timestamp) - getTimestampMs(a.timestamp));
+            const summaryEl = document.getElementById('solo-results-summary');
+            if (summaryEl) {
+                const totalAttempts = sortedResults.length;
+                const totals = sortedResults.reduce((acc, r) => {
+                    const parsed = parseScoreValue(r.score);
+                    acc.score += parsed.score;
+                    acc.total += parsed.total;
+                    return acc;
+                }, { score: 0, total: 0 });
+                const pct = totals.total > 0 ? Math.round((totals.score / totals.total) * 100) : 0;
+                summaryEl.innerText = totalAttempts > 0
+                    ? `Опити: ${totalAttempts} • Среден успех: ${pct}% (${totals.score}/${totals.total})`
+                    : 'Все още няма резултати за този профил.';
+            }
+
+            body.innerHTML = sortedResults.map(r => `
             body.innerHTML = soloResults.sort((a,b) => b.timestamp - a.timestamp).map(r => `
                 <tr class="border-b text-[10px] sm:text-xs hover:bg-slate-50">
                     <td class="py-3 px-4 font-black text-slate-700">${r.studentName}</td>
@@ -367,6 +461,25 @@
                 totalPoints: totalPoints
             });
 
+            participantStorageMode = 'legacy';
+            const subscribeHostParticipants = (legacy = false) => {
+                participantStorageMode = legacy ? 'legacy' : 'session';
+                const source = legacy ? getLegacyParticipantsCollection() : getParticipantsCollection(sessionDocId);
+                return onSnapshot(source, (snap) => {
+                    let participants = snap.docs.map(d => ({...d.data(), id: d.id}));
+                    if (legacy) participants = participants.filter(p => p.sessionId === sessionID);
+                    lastFetchedParticipants = participants;
+                    renderHostDashboard();
+                }, (error) => {
+                    console.error("Participants snapshot error:", error);
+                    if (!legacy) {
+                        window.showMessage("Ограничен достъп за новия формат. Включен е режим за съвместимост.", "error");
+                        const fallbackUnsub = subscribeHostParticipants(true);
+                        unsubscribes.push(fallbackUnsub);
+                    }
+                });
+            };
+            const unsub = subscribeHostParticipants(true);
             const unsub = onSnapshot(getParticipantsCollection(sessionDocId), (snap) => {
                 lastFetchedParticipants = snap.docs.map(d => ({...d.data(), id: d.id}));
                 renderHostDashboard();
@@ -414,6 +527,7 @@
         window.deleteParticipant = async (id) => {
             if (!confirm("Сигурни ли сте, че искате да премахнете този участник?")) return;
             try {
+                await deleteDoc(getActiveParticipantRef(sessionDocId, id));
                 await deleteDoc(getParticipantRef(sessionDocId, id));
                 window.showMessage("Участникът е премахнат.", "info");
             } catch (e) {
@@ -466,6 +580,7 @@
             }
             
             // Dynamic Leaderboard Sorting
+            document.getElementById('host-results-body').innerHTML = [...lastFetchedParticipants]
             document.getElementById('host-results-body').innerHTML = lastFetchedParticipants
                 .sort((a,b) => b.score - a.score)
                 .map((p, idx) => `
@@ -507,6 +622,7 @@
             data.push(header);
 
             // Rows
+            [...lastFetchedParticipants].sort((a,b)=>b.score-a.score).forEach((p,i) => {
             lastFetchedParticipants.sort((a,b)=>b.score-a.score).forEach((p,i) => {
                 let row = [
                     (i+1),
@@ -613,6 +729,10 @@
                 const uid = auth.currentUser?.uid || "unknown";
                 
                 // CHECK if user already exists in this session to prevent overwrite
+                participantStorageMode = 'legacy';
+                const participantRef = getLegacyParticipantRef(uid);
+                const pSnap = await getDoc(participantRef);
+                currentParticipantRef = participantRef;
                 const participantRef = getParticipantRef(pin, uid);
                 currentParticipantRef = participantRef;
                 const pSnap = await getDoc(participantRef);
@@ -773,6 +893,7 @@
             updatePayload[`answers.${liveActiveQIdx}`] = isCorrect;
 
             try {
+                await updateDoc(currentParticipantRef || getActiveParticipantRef(sessionID, user.uid), updatePayload);
                 await updateDoc(currentParticipantRef || getParticipantRef(sessionID, user.uid), updatePayload);
                 document.getElementById('waiting-status-text').innerText = isCorrect ? "ВЕРЕН ОТГОВОР! ✨" : "ГРЕШЕН ОТГОВОР... ❌";
             } catch (e) {
@@ -788,6 +909,7 @@
             if (!decoded) return window.showMessage("Невалиден код на урок.", 'error');
             const name = prompt("Вашето име:"); if (!name) return;
             studentNameValue = name; currentQuiz = decoded; 
+            currentQuizOwnerId = await window.resolveTeacherUidFromCode(decoded);
             currentQuizOwnerId = decoded.ownerId || decoded.teacherId || null;
             
             // --- FIX START: Authenticate user if needed ---
@@ -887,6 +1009,7 @@
             if (currentUser) {
                 const resId = `${currentUser.uid}_${currentQuiz.v.replace(/[^a-zA-Z0-9]/g, '')}_${Date.now()}`;
                 if (!currentQuizOwnerId) {
+                    window.showMessage("Кодът няма валиден собственик (учител). Резултатът не е записан.", "error");
                     window.showMessage("Този код е стар и няма собственик. Резултатът не е записан в облака.", "error");
                     return;
                 }
@@ -895,6 +1018,9 @@
                     quizTitle: currentQuiz.title || "Индивидуален тест", 
                     score: scoreText, 
                     timestamp: serverTimestamp(), 
+                    userId: currentUser.uid,
+                    teacherOwnerId: currentQuizOwnerId,
+                    teacherOwnerEmail: currentQuiz.ownerEmail || currentQuiz.teacherEmail || null
                     userId: currentUser.uid
                 });
             }
@@ -1044,6 +1170,7 @@
 
         window.showShareCode = (id) => {
             const q = myQuizzes.find(x => x.id === id);
+            const code = btoa(unescape(encodeURIComponent(JSON.stringify({v:q.v, q:q.questions, title:q.title, ownerId:user?.uid || null, ownerEmail:user?.email || null}))));
             const code = btoa(unescape(encodeURIComponent(JSON.stringify({v:q.v, q:q.questions, title:q.title, ownerId:user?.uid || null}))));
             document.getElementById('share-code-display').value = code;
             document.getElementById('modal-share').classList.remove('hidden'); document.getElementById('modal-share').classList.add('flex');
@@ -1146,6 +1273,7 @@
                 </div>
                 <div class="space-y-4">
                     <h3 class="text-base font-black flex items-center gap-2 text-indigo-600 px-2"><i data-lucide="users"></i> Резултати</h3>
+                    <p id="solo-results-summary" class="text-[11px] text-slate-400 font-bold px-2">Все още няма резултати за този профил.</p>
                     <div class="bg-white rounded-[2.5rem] border shadow-sm h-[450px] overflow-hidden flex flex-col">
                         <div class="overflow-y-auto flex-1 custom-scrollbar">
                             <table class="w-full text-left">
