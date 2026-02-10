@@ -8,6 +8,25 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Библиотека за истински Excel файлове (.xlsx) -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.mini.min.js"></script>
+    <script>
+        // Fallback: ако module script или Tailwind CDN не се изпълнят, не оставяй екрана на loader завинаги.
+        window.hideAuthLoader = () => {
+            const loader = document.getElementById('auth-loader');
+            if (!loader) return;
+            loader.classList.add('hidden');
+            loader.style.display = 'none';
+            loader.style.visibility = 'hidden';
+        };
+
+        window.addEventListener('load', () => {
+            setTimeout(() => window.hideAuthLoader?.(), 1500);
+        });
+        setTimeout(() => window.hideAuthLoader?.(), 8000);
+    </script>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, collectionGroup, doc, setDoc, getDoc, onSnapshot, serverTimestamp, updateDoc, deleteDoc, addDoc, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -81,6 +100,7 @@
             }
             lastAuthUid = incomingUid;
             user = u; 
+            window.hideAuthLoader?.();
             document.getElementById('auth-loader')?.classList.add('hidden');
             
             if (user) {
@@ -113,6 +133,13 @@
 
         setTimeout(() => {
             const loader = document.getElementById('auth-loader');
+            if (loader && !loader.classList.contains('hidden')) window.hideAuthLoader?.();
+        }, 4000);
+
+        initAuth().catch((error) => {
+            console.error('Auth init error:', error);
+            window.hideAuthLoader?.();
+        });
             if (loader && !loader.classList.contains('hidden')) loader.classList.add('hidden');
         }, 4000);
 
@@ -1222,6 +1249,7 @@
     <div id="auth-loader" class="fixed inset-0 bg-white z-[999] flex flex-col items-center justify-center text-center p-6">
         <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
         <p class="mt-4 font-black text-slate-400 uppercase text-[10px] tracking-widest">Зареждане на системата...</p>
+        <button onclick="window.hideAuthLoader && window.hideAuthLoader()" class="mt-8 text-[9px] uppercase font-bold text-slate-300 underline">Влез ръчно</button>
         <button onclick="document.getElementById('auth-loader').classList.add('hidden')" class="mt-8 text-[9px] uppercase font-bold text-slate-300 underline">Влез ръчно</button>
     </div>
 
