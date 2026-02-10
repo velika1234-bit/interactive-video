@@ -8,11 +8,26 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Библиотека за истински Excel файлове (.xlsx) -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.mini.min.js"></script>
+    <script>
+        // Fallback: ако module script или Tailwind CDN не се изпълнят, не оставяй екрана на loader завинаги.
+        window.hideAuthLoader = () => {
+            const loader = document.getElementById('auth-loader');
+            if (!loader) return;
+            loader.classList.add('hidden');
+            loader.style.display = 'none';
+            loader.style.visibility = 'hidden';
+        };
+
+        window.addEventListener('load', () => {
+            setTimeout(() => window.hideAuthLoader?.(), 1500);
+        });
+        setTimeout(() => window.hideAuthLoader?.(), 8000);
+    </script>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, serverTimestamp, updateDoc, deleteDoc, getDocs, query, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signOut, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, collectionGroup, doc, setDoc, getDoc, onSnapshot, serverTimestamp, updateDoc, deleteDoc, addDoc, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // --- FIREBASE CONFIGURATION ---
         const firebaseConfig = {
@@ -31,6 +46,7 @@
 
         // --- GLOBAL STATE ---
         let user = null; 
+        let lastAuthUid = null;
         let isTeacher = false;
         let editingQuizId = null; 
         let editingQuestionIndex = null;
@@ -39,6 +55,7 @@
         let player, solvePlayer, hostPlayer;
         let questions = [], currentQuiz = null, studentNameValue = "";
         let sessionID = "", liveActiveQIdx = -1;
+        let sessionDocId = "";
         let lastAnsweredIdx = -1; 
         let currentVideoId = ""; 
         let unsubscribes = [];
@@ -51,6 +68,17 @@
         let isYTReady = false;
         let authMode = 'login';
         let soloGameFinished = false; 
+        let currentQuizOwnerId = null;
+        let currentParticipantRef = null;
+        let participantStorageMode = 'legacy';
+
+        const getTeacherSoloResultsCollection = (teacherId) => collection(db, 'artifacts', appId, 'users', teacherId, 'solo_results');
+        const getSessionRefById = (id) => doc(db, 'artifacts', appId, 'public', 'data', 'sessions', id);
+        const getParticipantsCollection = (id) => collection(db, 'artifacts', appId, 'public', 'data', 'sessions', id, 'participants');
+        const getParticipantRef = (sessionId, participantId) => doc(db, 'artifacts', appId, 'public', 'data', 'sessions', sessionId, 'participants', participantId);
+        const getLegacyParticipantsCollection = () => collection(db, 'artifacts', appId, 'public', 'data', 'participants');
+        const getLegacyParticipantRef = (participantId) => doc(db, 'artifacts', appId, 'public', 'data', 'participants', participantId);
+        const getActiveParticipantRef = (sessionId, participantId) => participantStorageMode === 'legacy' ? getLegacyParticipantRef(participantId) : getParticipantRef(sessionId, participantId);
 
         // New variable for storing temporary selection
         window.tempLiveSelection = null;
@@ -59,8 +87,16 @@
 
         // --- AUTH LOGIC ---
         onAuthStateChanged(auth, async (u) => { 
+            const incomingUid = u?.uid || null;
+            if (lastAuthUid !== incomingUid) {
+                myQuizzes = [];
+                soloResults = [];
+                renderMyQuizzes();
+                renderSoloResults();
+            }
+            lastAuthUid = incomingUid;
             user = u; 
-            document.getElementById('auth-loader')?.classList.add('hidden');
+            window.hideAuthLoader?.();
             
             if (user) {
                 const isAnon = user.isAnonymous;
@@ -92,10 +128,13 @@
 
         setTimeout(() => {
             const loader = document.getElementById('auth-loader');
-            if (loader && !loader.classList.contains('hidden')) loader.classList.add('hidden');
+            if (loader && !loader.classList.contains('hidden')) window.hideAuthLoader?.();
         }, 4000);
 
-        initAuth();
+        initAuth().catch((error) => {
+            console.error('Auth init error:', error);
+            window.hideAuthLoader?.();
+        });
 
         // --- HELPER FUNCTIONS ---
         window.decodeQuizCode = (code) => {
@@ -106,6 +145,41 @@
             } catch (e) { 
                 try { return JSON.parse(atob(code.trim())); } catch(err) { return null; } 
             }
+        };
+
+        window.resolveTeacherUidFromCode = async (decoded) => {
+            if (!decoded) return null;
+            if (decoded.ownerId || decoded.teacherId) return decoded.ownerId || decoded.teacherId;
+
+            const ownerEmail = (decoded.ownerEmail || decoded.teacherEmail || '').trim().toLowerCase();
+            if (!ownerEmail) return null;
+
+            try {
+                const normalizedQ = query(
+                    collectionGroup(db, 'profile'),
+                    where('role', '==', 'teacher'),
+                    where('emailNormalized', '==', ownerEmail),
+                    limit(1)
+                );
+                const normalizedSnap = await getDocs(normalizedQ);
+                if (!normalizedSnap.empty) {
+                    return normalizedSnap.docs[0].ref.parent.parent?.id || null;
+                }
+
+                const fallbackQ = query(
+                    collectionGroup(db, 'profile'),
+                    where('role', '==', 'teacher'),
+                    where('email', '==', ownerEmail),
+                    limit(1)
+                );
+                const fallbackSnap = await getDocs(fallbackQ);
+                if (!fallbackSnap.empty) {
+                    return fallbackSnap.docs[0].ref.parent.parent?.id || null;
+                }
+            } catch (e) {
+                console.error('Owner email lookup failed:', e);
+            }
+            return null;
         };
 
         window.formatTime = (s) => {
@@ -122,6 +196,23 @@
             });
         };
 
+        const getTimestampMs = (value) => {
+            if (!value) return 0;
+            if (typeof value === 'number') return value;
+            if (typeof value?.toMillis === 'function') return value.toMillis();
+            if (typeof value?.toDate === 'function') return value.toDate().getTime();
+            const parsed = new Date(value).getTime();
+            return Number.isNaN(parsed) ? 0 : parsed;
+        };
+
+        const parseScoreValue = (scoreText) => {
+            if (!scoreText) return { score: 0, total: 0 };
+            const parts = String(scoreText).split('/').map(s => parseInt(s.trim(), 10));
+            const score = Number.isFinite(parts[0]) ? parts[0] : 0;
+            const total = Number.isFinite(parts[1]) ? parts[1] : 0;
+            return { score, total };
+        };
+
         window.switchScreen = (name) => {
             document.querySelectorAll('#app > div').forEach(div => div.classList.add('hidden'));
             const target = document.getElementById('screen-' + name);
@@ -135,6 +226,7 @@
             unsubscribes = [];
             activeIntervals.forEach(i => clearInterval(i));
             activeIntervals = [];
+            currentParticipantRef = null;
 
             if (name === 'teacher-dashboard' && user) { 
                 window.loadMyQuizzes(); 
@@ -201,7 +293,7 @@
 
                     const cred = await createUserWithEmailAndPassword(auth, email, pass);
                     await setDoc(doc(db, 'artifacts', appId, 'users', cred.user.uid, 'settings', 'profile'), { 
-                        role: 'teacher', email: email, activatedAt: serverTimestamp() 
+                        role: 'teacher', email: email, emailNormalized: email.toLowerCase(), activatedAt: serverTimestamp() 
                     });
                     window.showMessage("Успешна регистрация!");
                     window.switchScreen('teacher-dashboard');
@@ -220,6 +312,9 @@
         window.handleLogout = async () => {
             await signOut(auth);
             window.myQuizzes = [];
+            soloResults = [];
+            renderMyQuizzes();
+            renderSoloResults();
             window.switchScreen('welcome');
             window.showMessage("Излязохте успешно.");
         };
@@ -274,11 +369,17 @@
 
         window.loadSoloResults = async () => {
             if (!user) return;
-            const q = collection(db, 'artifacts', appId, 'public', 'data', 'solo_results');
+            soloResults = [];
+            renderSoloResults();
+            const q = getTeacherSoloResultsCollection(user.uid);
             const unsub = onSnapshot(q, (snap) => {
                 soloResults = snap.docs.map(d => ({...d.data(), id: d.id}));
                 renderSoloResults();
-            }, (error) => console.error("Solo results error:", error));
+            }, (error) => {
+                console.error("Solo results error:", error);
+                soloResults = [];
+                renderSoloResults();
+            });
             unsubscribes.push(unsub);
         };
 
@@ -286,7 +387,7 @@
             if (!user) return;
             if (confirm("Сигурни ли сте, че искате да изтриете този запис?")) {
                 try {
-                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'solo_results', id));
+                    await deleteDoc(doc(getTeacherSoloResultsCollection(user.uid), id));
                     window.showMessage("Записът е изтрит.", "info");
                 } catch (e) {
                     console.error(e);
@@ -318,7 +419,24 @@
         function renderSoloResults() {
             const body = document.getElementById('solo-results-body');
             if (!body) return;
-            body.innerHTML = soloResults.sort((a,b) => b.timestamp - a.timestamp).map(r => `
+
+            const sortedResults = [...soloResults].sort((a, b) => getTimestampMs(b.timestamp) - getTimestampMs(a.timestamp));
+            const summaryEl = document.getElementById('solo-results-summary');
+            if (summaryEl) {
+                const totalAttempts = sortedResults.length;
+                const totals = sortedResults.reduce((acc, r) => {
+                    const parsed = parseScoreValue(r.score);
+                    acc.score += parsed.score;
+                    acc.total += parsed.total;
+                    return acc;
+                }, { score: 0, total: 0 });
+                const pct = totals.total > 0 ? Math.round((totals.score / totals.total) * 100) : 0;
+                summaryEl.innerText = totalAttempts > 0
+                    ? `Опити: ${totalAttempts} • Среден успех: ${pct}% (${totals.score}/${totals.total})`
+                    : 'Все още няма резултати за този профил.';
+            }
+
+            body.innerHTML = sortedResults.map(r => `
                 <tr class="border-b text-[10px] sm:text-xs hover:bg-slate-50">
                     <td class="py-3 px-4 font-black text-slate-700">${r.studentName}</td>
                     <td class="py-3 px-4 text-slate-500 truncate max-w-[120px]">${r.quizTitle}</td>
@@ -339,27 +457,44 @@
             const quiz = myQuizzes.find(q => q.id === id);
             if (!quiz) return window.showMessage("Грешка при зареждане на урока.", "error");
             currentQuiz = { v: quiz.v, q: quiz.questions, title: quiz.title };
+            currentQuizOwnerId = user?.uid || null;
             await window.openLiveHost();
         };
 
         window.openLiveHost = async () => {
             if (!user) return;
             sessionID = Math.floor(1000 + Math.random() * 8999).toString();
+            sessionDocId = sessionID;
             window.switchScreen('live-host');
             document.getElementById('host-pin').innerText = sessionID;
             
             // Calculate total points
             const totalPoints = currentQuiz.q.reduce((a, q) => a + (q.points || 1), 0);
 
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sessions', sessionID), { 
-                activeQ: -1, status: 'waiting', hostId: user.uid, timestamp: serverTimestamp(),
+            await setDoc(getSessionRefById(sessionDocId), { 
+                activeQ: -1, status: 'waiting', hostId: user.uid, pin: sessionID, timestamp: serverTimestamp(),
                 totalPoints: totalPoints
             });
 
-            const unsub = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'participants'), (snap) => {
-                lastFetchedParticipants = snap.docs.map(d => ({...d.data(), id: d.id})).filter(p => p.sessionId === sessionID);
-                renderHostDashboard();
-            });
+            participantStorageMode = 'legacy';
+            const subscribeHostParticipants = (legacy = false) => {
+                participantStorageMode = legacy ? 'legacy' : 'session';
+                const source = legacy ? getLegacyParticipantsCollection() : getParticipantsCollection(sessionDocId);
+                return onSnapshot(source, (snap) => {
+                    let participants = snap.docs.map(d => ({...d.data(), id: d.id}));
+                    if (legacy) participants = participants.filter(p => p.sessionId === sessionID);
+                    lastFetchedParticipants = participants;
+                    renderHostDashboard();
+                }, (error) => {
+                    console.error("Participants snapshot error:", error);
+                    if (!legacy) {
+                        window.showMessage("Ограничен достъп за новия формат. Включен е режим за съвместимост.", "error");
+                        const fallbackUnsub = subscribeHostParticipants(true);
+                        unsubscribes.push(fallbackUnsub);
+                    }
+                });
+            };
+            const unsub = subscribeHostParticipants(true);
             unsubscribes.push(unsub);
         };
 
@@ -386,7 +521,7 @@
                                 if (qIdx !== -1 && qIdx !== liveActiveQIdx) {
                                     liveActiveQIdx = qIdx; 
                                     hostPlayer.pauseVideo();
-                                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sessions', sessionID), { 
+                                    await updateDoc(getSessionRefById(sessionDocId), { 
                                         activeQ: qIdx, qData: JSON.parse(JSON.stringify(currentQuiz.q[qIdx])), status: 'active' 
                                     });
                                 }
@@ -403,7 +538,7 @@
         window.deleteParticipant = async (id) => {
             if (!confirm("Сигурни ли сте, че искате да премахнете този участник?")) return;
             try {
-                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'participants', id));
+                await deleteDoc(getActiveParticipantRef(sessionDocId, id));
                 window.showMessage("Участникът е премахнат.", "info");
             } catch (e) {
                 console.error(e);
@@ -455,7 +590,7 @@
             }
             
             // Dynamic Leaderboard Sorting
-            document.getElementById('host-results-body').innerHTML = lastFetchedParticipants
+            document.getElementById('host-results-body').innerHTML = [...lastFetchedParticipants]
                 .sort((a,b) => b.score - a.score)
                 .map((p, idx) => `
                 <tr class="border-b transition-all hover:bg-slate-50 animate-pop">
@@ -476,7 +611,7 @@
 
         window.finishLiveSession = async () => {
             if (!sessionID) return;
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sessions', sessionID), { status: 'finished' });
+            await updateDoc(getSessionRefById(sessionDocId), { status: 'finished' });
             // Show the container with both buttons
             document.getElementById('export-buttons-container').classList.remove('hidden');
             document.getElementById('export-buttons-container').classList.add('flex');
@@ -496,7 +631,7 @@
             data.push(header);
 
             // Rows
-            lastFetchedParticipants.sort((a,b)=>b.score-a.score).forEach((p,i) => {
+            [...lastFetchedParticipants].sort((a,b)=>b.score-a.score).forEach((p,i) => {
                 let row = [
                     (i+1),
                     p.name,
@@ -584,7 +719,9 @@
             if (!pin || !studentNameValue) return window.showMessage("Име и ПИН са задължителни!", 'error');
             try {
                 if (!user) await signInAnonymously(auth);
-                const sessionRef = doc(db, 'artifacts', appId, 'public', 'data', 'sessions', pin);
+                const sessionRef = getSessionRefById(pin);
+                sessionID = pin;
+                sessionDocId = pin;
                 const sessionSnap = await getDoc(sessionRef);
                 if (!sessionSnap.exists()) return window.showMessage("Невалиден ПИН код.", 'error');
                 
@@ -600,8 +737,10 @@
                 const uid = auth.currentUser?.uid || "unknown";
                 
                 // CHECK if user already exists in this session to prevent overwrite
-                const participantRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', uid);
+                participantStorageMode = 'legacy';
+                const participantRef = getLegacyParticipantRef(uid);
                 const pSnap = await getDoc(participantRef);
+                currentParticipantRef = participantRef;
                 
                 if (pSnap.exists() && pSnap.data().sessionId === pin) {
                      // RESTORE STATE
@@ -759,7 +898,7 @@
             updatePayload[`answers.${liveActiveQIdx}`] = isCorrect;
 
             try {
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'participants', user.uid), updatePayload);
+                await updateDoc(currentParticipantRef || getActiveParticipantRef(sessionID, user.uid), updatePayload);
                 document.getElementById('waiting-status-text').innerText = isCorrect ? "ВЕРЕН ОТГОВОР! ✨" : "ГРЕШЕН ОТГОВОР... ❌";
             } catch (e) {
                 document.getElementById('waiting-status-text').innerText = "Грешка при изпращане!";
@@ -774,6 +913,7 @@
             if (!decoded) return window.showMessage("Невалиден код на урок.", 'error');
             const name = prompt("Вашето име:"); if (!name) return;
             studentNameValue = name; currentQuiz = decoded; 
+            currentQuizOwnerId = await window.resolveTeacherUidFromCode(decoded);
             
             // --- FIX START: Authenticate user if needed ---
             if (!auth.currentUser) {
@@ -871,12 +1011,18 @@
             const currentUser = auth.currentUser || user;
             if (currentUser) {
                 const resId = `${currentUser.uid}_${currentQuiz.v.replace(/[^a-zA-Z0-9]/g, '')}_${Date.now()}`;
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'solo_results', resId), {
+                if (!currentQuizOwnerId) {
+                    window.showMessage("Кодът няма валиден собственик (учител). Резултатът не е записан.", "error");
+                    return;
+                }
+                await setDoc(doc(getTeacherSoloResultsCollection(currentQuizOwnerId), resId), {
                     studentName: studentNameValue, 
                     quizTitle: currentQuiz.title || "Индивидуален тест", 
                     score: scoreText, 
                     timestamp: serverTimestamp(), 
-                    userId: currentUser.uid
+                    userId: currentUser.uid,
+                    teacherOwnerId: currentQuizOwnerId,
+                    teacherOwnerEmail: currentQuiz.ownerEmail || currentQuiz.teacherEmail || null
                 });
             }
             // --- FIX END ---
@@ -1025,7 +1171,7 @@
 
         window.showShareCode = (id) => {
             const q = myQuizzes.find(x => x.id === id);
-            const code = btoa(unescape(encodeURIComponent(JSON.stringify({v:q.v, q:q.questions, title:q.title}))));
+            const code = btoa(unescape(encodeURIComponent(JSON.stringify({v:q.v, q:q.questions, title:q.title, ownerId:user?.uid || null, ownerEmail:user?.email || null}))));
             document.getElementById('share-code-display').value = code;
             document.getElementById('modal-share').classList.remove('hidden'); document.getElementById('modal-share').classList.add('flex');
         };
@@ -1073,10 +1219,10 @@
 <body class="bg-slate-50 min-h-screen">
 
     <!-- Лоадер -->
-    <div id="auth-loader" class="fixed inset-0 bg-white z-[999] flex flex-col items-center justify-center text-center p-6">
+    <div id="auth-loader" class="hidden fixed inset-0 bg-white z-[999] flex flex-col items-center justify-center text-center p-6" aria-hidden="true">
         <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
         <p class="mt-4 font-black text-slate-400 uppercase text-[10px] tracking-widest">Зареждане на системата...</p>
-        <button onclick="document.getElementById('auth-loader').classList.add('hidden')" class="mt-8 text-[9px] uppercase font-bold text-slate-300 underline">Влез ръчно</button>
+        <button onclick="window.hideAuthLoader && window.hideAuthLoader()" class="mt-8 text-[9px] uppercase font-bold text-slate-300 underline">Влез ръчно</button>
     </div>
 
     <div id="msg-container" class="fixed top-4 sm:top-8 left-1/2 -translate-x-1/2 z-[3000] w-full max-w-[280px] sm:max-w-sm px-4 pointer-events-none"></div>
@@ -1127,6 +1273,7 @@
                 </div>
                 <div class="space-y-4">
                     <h3 class="text-base font-black flex items-center gap-2 text-indigo-600 px-2"><i data-lucide="users"></i> Резултати</h3>
+                    <p id="solo-results-summary" class="text-[11px] text-slate-400 font-bold px-2">Все още няма резултати за този профил.</p>
                     <div class="bg-white rounded-[2.5rem] border shadow-sm h-[450px] overflow-hidden flex flex-col">
                         <div class="overflow-y-auto flex-1 custom-scrollbar">
                             <table class="w-full text-left">
