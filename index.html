@@ -648,7 +648,7 @@
                                     liveActiveQIdx = qIdx; 
                                     hostPlayer.pauseVideo();
                                     await updateDoc(getSessionRefById(sessionDocId), { 
-                                        activeQ: qIdx, qData: JSON.parse(JSON.stringify(currentQuiz.q[qIdx])), status: 'active' 
+                                        activeQ: qIdx, qData: JSON.parse(JSON.stringify(currentQuiz.q[qIdx])), status: 'active', qStartedAt: serverTimestamp() 
                                     });
                                 }
                             }, 1000);
@@ -696,7 +696,9 @@
                 wrong: 0,
                 answered: 0,
                 missed: 0,
-                participants: participantsCount
+                participants: participantsCount,
+                fastestMs: null,
+                fastestName: null
             }));
 
             lastFetchedParticipants.forEach(p => {
@@ -715,6 +717,15 @@
                         questionStats[qIdx].wrong += 1;
                         questionStats[qIdx].answered += 1;
                     }
+
+                    let reaction = p.reactionMs?.[qIdx];
+                    if (reaction === undefined) reaction = p.reactionMs?.[String(qIdx)];
+                    if (typeof reaction === 'number' && reaction >= 0) {
+                        if (questionStats[qIdx].fastestMs === null || reaction < questionStats[qIdx].fastestMs) {
+                            questionStats[qIdx].fastestMs = reaction;
+                            questionStats[qIdx].fastestName = p.name || 'Участник';
+                        }
+                    }
                 });
             });
 
@@ -731,16 +742,36 @@
 
             if (progressBar) {
                 const correctPct = totalAnswers > 0 ? (totalCorrect / totalAnswers) * 100 : 0;
+                const wrongPct = totalAnswers > 0 ? 100 - correctPct : 0;
                 if (progressCorrect) progressCorrect.style.width = correctPct + '%';
-                if (progressWrong) progressWrong.style.width = (100 - correctPct) + '%';
+                if (progressWrong) progressWrong.style.width = wrongPct + '%';
 
                 if (progressStatsText) {
                     progressStatsText.innerText = totalAnswers > 0
-                        ? `В: ${totalCorrect} / Г: ${totalAnswers - totalCorrect} / П: ${Math.max(0, (participantsCount * quizQuestions.length) - totalAnswers)}`
+                        ? `В: ${totalCorrect} (${Math.round(correctPct)}%) / Г: ${totalAnswers - totalCorrect} (${Math.round(wrongPct)}%) / П: ${Math.max(0, (participantsCount * quizQuestions.length) - totalAnswers)}`
                         : 'Очакват се отговори...';
                 }
                 if (progressPercent) progressPercent.innerText = Math.round(correctPct) + '%';
                 progressBar.classList.remove('opacity-0');
+            }
+
+            // Fastest reaction across class
+            let fastestOverallMs = null;
+            let fastestOverallName = null;
+            lastFetchedParticipants.forEach((p) => {
+                const r = p.reactionMs || {};
+                Object.values(r).forEach((ms) => {
+                    if (typeof ms === 'number' && ms >= 0 && (fastestOverallMs === null || ms < fastestOverallMs)) {
+                        fastestOverallMs = ms;
+                        fastestOverallName = p.name || 'Участник';
+                    }
+                });
+            });
+            const fastestEl = document.getElementById('fastest-reaction-text');
+            if (fastestEl) {
+                fastestEl.innerText = fastestOverallMs !== null
+                    ? `⚡ Най-бърз отговор: ${fastestOverallName} (${(fastestOverallMs / 1000).toFixed(2)}s)`
+                    : '⚡ Най-бърз отговор: няма данни';
             }
 
             // Per-question stats cards
@@ -763,6 +794,7 @@
                                 <div class="bg-slate-200 text-slate-600 rounded-lg py-1">П ${q.missed}</div>
                             </div>
                             <p class="mt-1 text-[10px] text-slate-500 font-bold">Отговорили: ${q.answered}/${q.participants} (${responseRate}%)</p>
+                            <p class="mt-1 text-[10px] text-indigo-600 font-bold">⚡ ${q.fastestMs !== null ? `Най-бърз: ${q.fastestName} (${(q.fastestMs / 1000).toFixed(2)}s)` : 'Най-бърз: няма данни'}</p>
                         </div>`;
                     }).join('')
                     : '<div class="text-[11px] text-slate-400 italic">Няма заредени въпроси.</div>';
@@ -988,6 +1020,9 @@
                         if (liveActiveQIdx !== d.activeQ) {
                             liveActiveQIdx = d.activeQ; 
                             window.currentLiveQ = d.qData;
+                            window.currentLiveQStartedAtMs = (typeof d.qStartedAt?.toMillis === 'function')
+                                ? d.qStartedAt.toMillis()
+                                : (d.qStartedAt?.seconds ? d.qStartedAt.seconds * 1000 : Date.now());
                             document.getElementById('client-question').classList.remove('hidden'); 
                             document.getElementById('client-waiting').classList.add('hidden');
                             document.getElementById('live-q-text-client').innerText = d.qData.text; 
@@ -1160,8 +1195,10 @@
                 lastAnsweredIdx: liveActiveQIdx, 
                 lastResult: isCorrect
             };
+            const reactionMs = window.currentLiveQStartedAtMs ? Math.max(0, Date.now() - window.currentLiveQStartedAtMs) : null;
             // FIX: Ensure key is a string to prevent undefined index issues
             updatePayload[`answers.${liveActiveQIdx}`] = isCorrect;
+            if (reactionMs !== null) updatePayload[`reactionMs.${liveActiveQIdx}`] = reactionMs;
 
             try {
                 if (currentParticipantRef) {
@@ -1800,6 +1837,7 @@
                                 <div>
                                     <h3 class="font-black text-slate-800 text-sm uppercase leading-none">Успеваемост</h3>
                                     <p id="progress-stats-text" class="text-[10px] font-bold text-slate-400 mt-1">Няма данни</p>
+                                    <p id="fastest-reaction-text" class="text-[10px] font-bold text-indigo-500 mt-1">⚡ Най-бърз отговор: няма данни</p>
                                 </div>
                             </div>
 
