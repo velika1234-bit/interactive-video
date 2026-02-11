@@ -168,32 +168,42 @@
 
         window.resolveTeacherUidFromCode = async (decoded) => {
             if (!decoded) return null;
-            if (decoded.ownerId || decoded.teacherId) return decoded.ownerId || decoded.teacherId;
 
-            const ownerEmail = (decoded.ownerEmail || decoded.teacherEmail || '').trim().toLowerCase();
+            // 1) Strongest link: explicit teacher/owner uid embedded in the code.
+            const explicitOwnerId = decoded.ownerId || decoded.teacherId || null;
+            if (explicitOwnerId) return explicitOwnerId;
+
+            // 2) Fallback: normalized teacher email.
+            const ownerEmail = (decoded.ownerEmailNormalized || decoded.ownerEmail || decoded.teacherEmail || '').trim().toLowerCase();
             if (!ownerEmail) return null;
 
             try {
                 const normalizedQ = query(
                     collectionGroup(db, 'profile'),
                     where('role', '==', 'teacher'),
-                    where('emailNormalized', '==', ownerEmail),
-                    limit(1)
+                    where('emailNormalized', '==', ownerEmail)
                 );
                 const normalizedSnap = await getDocs(normalizedQ);
-                if (!normalizedSnap.empty) {
+                if (normalizedSnap.size === 1) {
                     return normalizedSnap.docs[0].ref.parent.parent?.id || null;
+                }
+                if (normalizedSnap.size > 1) {
+                    console.error('Ambiguous teacher match by emailNormalized:', ownerEmail);
+                    return null;
                 }
 
                 const fallbackQ = query(
                     collectionGroup(db, 'profile'),
                     where('role', '==', 'teacher'),
-                    where('email', '==', ownerEmail),
-                    limit(1)
+                    where('email', '==', ownerEmail)
                 );
                 const fallbackSnap = await getDocs(fallbackQ);
-                if (!fallbackSnap.empty) {
+                if (fallbackSnap.size === 1) {
                     return fallbackSnap.docs[0].ref.parent.parent?.id || null;
+                }
+                if (fallbackSnap.size > 1) {
+                    console.error('Ambiguous teacher match by email:', ownerEmail);
+                    return null;
                 }
             } catch (e) {
                 console.error('Owner email lookup failed:', e);
@@ -984,10 +994,46 @@
             window.submitLiveFinal(isCorrect);
         };
 
+
+        window.pickLiveOrder = (el, originalIdx) => {
+            if (!Array.isArray(window.userOrderSequence)) window.userOrderSequence = [];
+            if (window.userOrderSequence.includes(originalIdx)) return;
+            window.userOrderSequence.push(originalIdx);
+            el.classList.add('opacity-40', 'pointer-events-none');
+            const result = document.getElementById('client-ordering-result');
+            if (result) {
+                const chip = document.createElement('div');
+                chip.className = 'bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-black text-[10px]';
+                chip.innerText = `${window.userOrderSequence.length}. ${el.innerText}`;
+                result.appendChild(chip);
+            }
+            if (window.userOrderSequence.length === window.currentLiveQ.options.length) {
+                document.getElementById('sticky-btn-container')?.classList.remove('hidden');
+            }
+        };
+
+        window.clearLiveOrdering = () => {
+            window.userOrderSequence = [];
+            const result = document.getElementById('client-ordering-result');
+            if (result) result.innerHTML = '';
+            document.querySelectorAll('.client-order-item').forEach((btn) => btn.classList.remove('opacity-40', 'pointer-events-none'));
+            document.getElementById('sticky-btn-container')?.classList.add('hidden');
+        };
+
+        window.submitLiveOrderingConfirm = () => {
+            const q = window.currentLiveQ;
+            if (!Array.isArray(window.userOrderSequence) || window.userOrderSequence.length !== q.options.length) {
+                return window.showMessage('Подредете всички елементи!', 'error');
+            }
+            const isCorrect = JSON.stringify(window.userOrderSequence) === JSON.stringify(q.correct);
+            window.submitLiveFinal(isCorrect);
+        };
+
         window.renderLiveQuestionUI = (q) => {
             const container = document.getElementById('live-options-client'); 
             container.innerHTML = '';
             window.tempLiveSelection = null; // Reset selection
+            window.userOrderSequence = [];
             
             let btnHtml = `
             <div class="h-28"></div> <!-- Spacer -->
@@ -1022,6 +1068,14 @@
                 // Always show submit for open questions
                 document.getElementById('sticky-btn-container').classList.remove('hidden');
                 document.getElementById('btn-submit-live-unified').onclick = window.submitLiveOpenConfirm;
+            } else if (q.type === 'ordering') {
+                const shuffled = q.options.map((o, i) => ({o, i})).sort(() => Math.random() - 0.5);
+                container.innerHTML = `
+                    <div id="client-ordering-pool" class="grid grid-cols-1 gap-2 mb-4">${shuffled.map(item => `<button onclick="window.pickLiveOrder(this, ${item.i})" class="client-order-item w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-black text-slate-800 text-sm">${item.o}</button>`).join('')}</div>
+                    <div id="client-ordering-result" class="flex flex-wrap justify-center gap-2 mb-4 min-h-[40px] border-t pt-4"></div>
+                    <button type="button" onclick="window.clearLiveOrdering()" class="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-black uppercase text-[10px] mb-2">Изчисти</button>
+                ` + btnHtml;
+                document.getElementById('btn-submit-live-unified').onclick = window.submitLiveOrderingConfirm;
             }
         };
 
@@ -1068,6 +1122,9 @@
             const name = prompt("Вашето име:"); if (!name) return;
             studentNameValue = name; currentQuiz = decoded; 
             currentQuizOwnerId = await window.resolveTeacherUidFromCode(decoded);
+            if (!currentQuizOwnerId) {
+                return window.showMessage("Кодът не е свързан еднозначно с учител. Генерирайте нов код от профила на учителя.", 'error');
+            }
             
             // --- FIX START: Authenticate user if needed ---
             if (!auth.currentUser) {
@@ -1130,6 +1187,17 @@
             else if (q.type === 'multiple') container.innerHTML = q.options.map((o, i) => `<label class="flex items-center gap-4 w-full p-4 bg-white/10 border border-white/20 rounded-2xl font-black text-white cursor-pointer text-sm mb-2"><input type="checkbox" name="s-multiple" value="${i}" class="w-5 h-5"> ${o}</label>`).join('') + `<button onclick="window.submitSoloMultiple()" class="w-full mt-4 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs">Изпрати</button>`;
             else if (q.type === 'boolean') container.innerHTML = `<div class="grid grid-cols-2 gap-4"><button onclick="window.submitSolo(true)" class="p-10 bg-emerald-500/80 rounded-3xl font-black border border-white/30 text-white text-2xl">ДА</button><button onclick="window.submitSolo(false)" class="p-10 bg-rose-500/80 rounded-3xl font-black border border-white/30 text-white text-2xl">НЕ</button></div>`;
             else if (q.type === 'open') container.innerHTML = `<input type="text" id="s-open-answer" placeholder="Отговор..." class="w-full p-6 bg-white/10 border border-white/20 rounded-2xl font-black text-white text-xl outline-none mb-4 text-center"><button onclick="window.submitSoloOpen()" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs">Изпрати</button>`;
+            else if (q.type === 'ordering') {
+                window.userOrderSequence = [];
+                const shuffled = q.options.map((o, i) => ({o, i})).sort(() => Math.random() - 0.5);
+                container.innerHTML = `
+                    <div id="solo-ordering-pool" class="space-y-2">${shuffled.map(item => `<button onclick="window.pickSoloOrder(this, ${item.i})" class="solo-order-item w-full p-4 text-left bg-white/10 border border-white/20 rounded-2xl font-black text-white">${item.o}</button>`).join('')}</div>
+                    <div id="solo-ordering-result" class="min-h-[48px] border-t border-white/20 mt-4 pt-4 flex flex-wrap gap-2"></div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="window.clearSoloOrdering()" class="py-3 bg-slate-600 rounded-xl font-black text-xs">Изчисти</button>
+                        <button onclick="window.submitSoloOrdering()" class="py-3 bg-indigo-600 rounded-xl font-black text-xs">Изпрати</button>
+                    </div>`;
+            }
         };
 
         window.submitSoloFinal = (isCorrect) => {
@@ -1151,6 +1219,34 @@
         };
 
         window.submitSolo = (v) => window.submitSoloFinal(v === currentQuiz.q[currentQIndex].correct);
+
+        window.submitSoloOrdering = () => {
+            const q = currentQuiz.q[currentQIndex];
+            if (!Array.isArray(window.userOrderSequence) || window.userOrderSequence.length !== q.options.length) return window.showMessage('Подредете всички елементи!', 'error');
+            const isCorrect = JSON.stringify(window.userOrderSequence) === JSON.stringify(q.correct);
+            window.submitSoloFinal(isCorrect);
+        };
+
+        window.pickSoloOrder = (el, originalIdx) => {
+            if (!Array.isArray(window.userOrderSequence)) window.userOrderSequence = [];
+            if (window.userOrderSequence.includes(originalIdx)) return;
+            window.userOrderSequence.push(originalIdx);
+            el.classList.add('opacity-40', 'pointer-events-none');
+            const result = document.getElementById('solo-ordering-result');
+            if (result) {
+                const chip = document.createElement('div');
+                chip.className = 'px-3 py-1 rounded-lg bg-indigo-600 text-white text-xs font-black';
+                chip.innerText = `${window.userOrderSequence.length}. ${el.innerText}`;
+                result.appendChild(chip);
+            }
+        };
+
+        window.clearSoloOrdering = () => {
+            window.userOrderSequence = [];
+            const result = document.getElementById('solo-ordering-result');
+            if (result) result.innerHTML = '';
+            document.querySelectorAll('.solo-order-item').forEach((btn) => btn.classList.remove('opacity-40', 'pointer-events-none'));
+        };
 
         window.finishSoloGame = async () => {
             if (soloGameFinished) return; 
@@ -1221,13 +1317,32 @@
             window.updateModalFields(); 
         };
 
+        window.addQuestionOptionRow = (value = '', checked = false) => {
+            const type = document.getElementById('m-type').value;
+            const list = document.getElementById('m-opts-list');
+            if (!list) return;
+            const inputType = type === 'single' ? 'radio' : (type === 'multiple' ? 'checkbox' : 'hidden');
+            const row = document.createElement('div');
+            row.className = 'option-row flex items-center gap-2 mb-2 bg-slate-50 p-3 rounded-2xl border';
+            row.innerHTML = `
+                <input type="${inputType}" name="m-correct" class="w-5 h-5 ${type === 'ordering' ? 'hidden' : ''}" ${checked ? 'checked' : ''}>
+                <input type="text" value="${value}" placeholder="Текст на отговор" class="option-input flex-1 bg-transparent font-black outline-none text-xs sm:text-sm">
+                <button type="button" onclick="this.closest('.option-row')?.remove()" class="text-rose-500 text-xs font-black px-2">✕</button>
+            `;
+            list.appendChild(row);
+        };
+
         window.updateModalFields = () => {
             const type = document.getElementById('m-type').value; 
             const container = document.getElementById('m-opts-container'); 
             container.innerHTML = '';
-            if (type === 'single' || type === 'multiple') { 
-                const it = type === 'single' ? 'radio' : 'checkbox';
-                for (let i = 0; i < 4; i++) container.innerHTML += `<div class="flex items-center gap-2 mb-2 bg-slate-50 p-3 rounded-2xl border"><input type="${it}" name="m-correct" value="${i}" class="w-5 h-5"><input type="text" id="m-opt-${i}" placeholder="Опция ${i+1}" class="flex-1 bg-transparent font-black outline-none text-xs sm:text-sm"></div>`;
+            if (type === 'single' || type === 'multiple' || type === 'ordering') {
+                container.innerHTML = `
+                    <div id="m-opts-list"></div>
+                    <button type="button" onclick="window.addQuestionOptionRow()" class="w-full py-3 border-2 border-dashed rounded-2xl text-[10px] font-black uppercase text-slate-400 mt-2">+ Добави отговор</button>
+                `;
+                window.addQuestionOptionRow();
+                window.addQuestionOptionRow();
             } else if (type === 'boolean') {
                 container.innerHTML = `<div class="grid grid-cols-2 gap-4 mt-2"><label class="flex items-center justify-center gap-4 p-4 bg-slate-50 rounded-2xl border font-black cursor-pointer"><input type="radio" name="m-correct" value="true" checked> ДА</label><label class="flex items-center justify-center gap-4 p-4 bg-slate-50 rounded-2xl border font-black cursor-pointer"><input type="radio" name="m-correct" value="false"> НЕ</label></div>`;
             } else if (type === 'open') {
@@ -1241,14 +1356,33 @@
             if (!text) return window.showMessage("Въведете текст!", "error");
             let timeVal = editingQuestionIndex !== null ? questions[editingQuestionIndex].time : Math.floor(player.getCurrentTime());
             let qData = { time: timeVal, text, type, points: parseInt(document.getElementById('m-points').value) || 1 };
-            if (type === 'single' || type === 'multiple') {
-                const checked = Array.from(document.querySelectorAll('input[name="m-correct"]:checked')).map(el => parseInt(el.value));
-                qData.options = [0,1,2,3].map(i => document.getElementById('m-opt-'+i)?.value.trim()).filter(Boolean);
-                if (qData.options.length < 2) return window.showMessage("Добавете поне 2 опции!", "error");
-                qData.correct = type === 'single' ? checked[0] : checked;
+
+            if (type === 'single' || type === 'multiple' || type === 'ordering') {
+                const rows = Array.from(document.querySelectorAll('#m-opts-list .option-row'));
+                const entries = rows.map((row) => ({
+                    text: row.querySelector('.option-input')?.value.trim() || '',
+                    checked: !!row.querySelector('input[name="m-correct"]')?.checked
+                })).filter((e) => e.text);
+                if (entries.length < 2) return window.showMessage("Добавете поне 2 отговора!", "error");
+                qData.options = entries.map((e) => e.text);
+
+                if (type === 'single' || type === 'multiple') {
+                    const correct = [];
+                    entries.forEach((entry, idx) => {
+                        if (entry.checked) correct.push(idx);
+                    });
+                    if (correct.length === 0) return window.showMessage("Маркирайте верен отговор!", "error");
+                    if (type === 'single') qData.correct = correct[0];
+                    else qData.correct = correct;
+                } else {
+                    qData.correct = qData.options.map((_, i) => i);
+                }
             } else if (type === 'boolean') {
                 qData.correct = document.querySelector('input[name="m-correct"]:checked').value === 'true';
-            } else if (type === 'open') qData.correct = document.getElementById('m-open-correct')?.value.trim().toLowerCase();
+            } else if (type === 'open') {
+                qData.correct = document.getElementById('m-open-correct')?.value.trim().toLowerCase();
+            }
+
             if (editingQuestionIndex !== null) questions[editingQuestionIndex] = qData;
             else questions.push(qData);
             questions.sort((a,b) => a.time - b.time); 
@@ -1268,12 +1402,18 @@
             document.getElementById('modal-q').classList.remove('hidden');
             document.getElementById('modal-q').classList.add('flex');
             window.updateModalFields();
-            if (q.type === 'single' || q.type === 'multiple') {
-                q.options.forEach((opt, i) => { if (document.getElementById('m-opt-' + i)) document.getElementById('m-opt-' + i).value = opt; });
-                const corrects = Array.isArray(q.correct) ? q.correct : [q.correct];
-                document.querySelectorAll('input[name="m-correct"]').forEach(input => { if (corrects.includes(parseInt(input.value))) input.checked = true; });
+
+            if (q.type === 'single' || q.type === 'multiple' || q.type === 'ordering') {
+                const list = document.getElementById('m-opts-list');
+                if (list) list.innerHTML = '';
+                (q.options || []).forEach((opt, i) => {
+                    const corrects = Array.isArray(q.correct) ? q.correct : [q.correct];
+                    const checked = q.type !== 'ordering' && corrects.includes(i);
+                    window.addQuestionOptionRow(opt, checked);
+                });
             } else if (q.type === 'boolean') {
-                document.querySelector(`input[name="m-correct"][value="${q.correct}"]`).checked = true;
+                const boolInput = document.querySelector(`input[name="m-correct"][value="${q.correct}"]`);
+                if (boolInput) boolInput.checked = true;
             } else if (q.type === 'open') {
                 if (document.getElementById('m-open-correct')) document.getElementById('m-open-correct').value = q.correct;
             }
@@ -1335,7 +1475,15 @@
             const q = myQuizzes.find(x => x.id === id);
             // Removed duplicate 'const code' declaration from original file.
             // Encoding ownerEmail allows us to link solo results back to teacher properly.
-            const code = btoa(unescape(encodeURIComponent(JSON.stringify({v:q.v, q:q.questions, title:q.title, ownerId:user?.uid || null, ownerEmail:user?.email || null}))));
+            const code = btoa(unescape(encodeURIComponent(JSON.stringify({
+                v: q.v,
+                q: q.questions,
+                title: q.title,
+                ownerId: user?.uid || null,
+                teacherId: user?.uid || null,
+                ownerEmail: user?.email || null,
+                ownerEmailNormalized: user?.email?.toLowerCase?.() || null
+            }))));
             document.getElementById('share-code-display').value = code;
             document.getElementById('modal-share').classList.remove('hidden'); document.getElementById('modal-share').classList.add('flex');
         };
@@ -1616,7 +1764,7 @@
             <div class="bg-white w-full max-w-xl rounded-[4rem] p-12 animate-pop flex flex-col gap-8 shadow-2xl max-h-[95vh] overflow-y-auto custom-scrollbar">
                 <div class="flex items-center justify-between"><h2 class="text-2xl font-black" id="m-title-text">Нов въпрос</h2><span id="m-time" class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-black text-sm">00:00</span></div>
                 <div class="grid grid-cols-2 gap-4">
-                    <select id="m-type" onchange="window.updateModalFields()" class="p-5 bg-slate-50 border-2 rounded-2xl font-black outline-none text-xs"><option value="single">Един верен</option><option value="multiple">Няколко верни</option><option value="boolean">Вярно/Невярно</option><option value="open">Отворен отговор</option></select>
+                    <select id="m-type" onchange="window.updateModalFields()" class="p-5 bg-slate-50 border-2 rounded-2xl font-black outline-none text-xs"><option value="single">Един верен</option><option value="multiple">Няколко верни</option><option value="boolean">Вярно/Невярно</option><option value="open">Отворен отговор</option><option value="ordering">Подреждане</option></select>
                     <input type="number" id="m-points" value="1" min="1" class="p-5 bg-slate-50 border-2 rounded-2xl font-black text-center text-xs">
                 </div>
                 <textarea id="m-text" placeholder="Задайте въпрос тук..." class="w-full p-6 bg-slate-50 rounded-2xl font-black border-2 outline-none text-sm resize-none" rows="3"></textarea>
