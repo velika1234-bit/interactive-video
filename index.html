@@ -539,9 +539,25 @@
             await window.openLiveHost();
         };
 
+        const generateNumericPin = (length = 3) => {
+            const min = Math.pow(10, length - 1);
+            const max = Math.pow(10, length) - 1;
+            return Math.floor(min + Math.random() * (max - min + 1)).toString();
+        };
+
+        const createUniqueSessionPin = async () => {
+            // Prefer shorter 3-digit PIN; fallback to 4-digit if collisions happen.
+            for (let i = 0; i < 20; i++) {
+                const candidate = i < 15 ? generateNumericPin(3) : generateNumericPin(4);
+                const existingSnap = await getDoc(getSessionRefById(candidate));
+                if (!existingSnap.exists()) return candidate;
+            }
+            return generateNumericPin(4);
+        };
+
         window.openLiveHost = async () => {
             if (!user) return;
-            sessionID = Math.floor(1000 + Math.random() * 8999).toString();
+            sessionID = await createUniqueSessionPin();
             sessionDocId = sessionID;
             window.switchScreen('live-host');
             document.getElementById('host-pin').innerText = sessionID;
@@ -1392,7 +1408,7 @@
                 <div class="bg-white p-8 rounded-[3rem] border-2 border-emerald-500 shadow-2xl flex flex-col gap-6 text-center md:scale-105">
                     <h2 class="text-2xl font-black text-emerald-600">В Клас</h2>
                     <input type="text" id="live-student-name" placeholder="Твоето име" class="w-full p-4 bg-slate-50 rounded-2xl border-2 text-center font-bold outline-none">
-                    <input type="text" id="live-pin" placeholder="PIN код" class="w-full p-4 bg-slate-50 rounded-2xl border-2 text-center font-black text-2xl outline-none">
+                    <input type="text" id="live-pin" placeholder="PIN код" maxlength="4" inputmode="numeric" pattern="[0-9]*" class="w-full p-4 bg-slate-50 rounded-2xl border-2 text-center font-black text-2xl outline-none">
                     <button onclick="window.joinLiveSession()" class="w-full py-5 bg-emerald-500 text-white rounded-2xl font-black uppercase shadow-xl hover:bg-emerald-600 transition-all text-xs shadow-emerald-200">Влез в сесия</button>
                 </div>
                 <div class="bg-slate-900 p-8 rounded-[3rem] shadow-2xl text-white flex flex-col gap-6 text-center">
