@@ -63,6 +63,7 @@
         let currentParticipantRef = null;
         let participantStorageMode = 'legacy';
         let rulesModalShown = false;
+        let sopModeEnabled = false;
 
         // Helper to get consistent paths
         const getTeacherSoloResultsCollection = (teacherId) => collection(db, 'artifacts', finalAppId, 'users', teacherId, 'solo_results');
@@ -1114,12 +1115,33 @@
             }
         };
 
+        const stopSpeechReader = () => {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+        };
+
+        const readQuestionWithSpeech = (text) => {
+            if (!sopModeEnabled || !('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'bg-BG';
+                u.rate = 0.9;
+                u.pitch = 1;
+                window.speechSynthesis.speak(u);
+            } catch (e) {
+                console.error('Speech reader failed:', e);
+            }
+        };
+
         // --- SOLO LOGIC (Updated Finish Logic) ---
         window.startIndividual = async () => {
             const pinCode = document.getElementById('ind-quiz-code').value.trim();
             const decoded = window.decodeQuizCode(pinCode);
             if (!decoded) return window.showMessage("Невалиден код на урок.", 'error');
             const name = prompt("Вашето име:"); if (!name) return;
+            sopModeEnabled = !!document.getElementById('ind-sop-mode')?.checked;
             studentNameValue = name; currentQuiz = decoded; 
             currentQuizOwnerId = await window.resolveTeacherUidFromCode(decoded);
             if (!currentQuizOwnerId) {
@@ -1180,7 +1202,13 @@
             solvePlayer?.pauseVideo();
             const overlay = document.getElementById('ind-overlay');
             overlay.classList.remove('hidden'); overlay.classList.add('flex');
-            document.getElementById('ind-overlay-q-text').innerText = q.text;
+            const questionEl = document.getElementById('ind-overlay-q-text');
+            questionEl.innerText = q.text;
+            questionEl.classList.toggle('text-3xl', sopModeEnabled);
+            questionEl.classList.toggle('sm:text-6xl', sopModeEnabled);
+            questionEl.classList.toggle('text-xl', !sopModeEnabled);
+            questionEl.classList.toggle('sm:text-4xl', !sopModeEnabled);
+            readQuestionWithSpeech(q.text);
             const container = document.getElementById('ind-overlay-options'); 
             container.innerHTML = '';
             if (q.type === 'single') container.innerHTML = q.options.map((o, i) => `<button onclick="window.submitSolo(${i})" class="w-full p-4 text-left bg-white/10 border border-white/20 rounded-2xl font-black text-white hover:bg-white/20 transition-all text-sm">${o}</button>`).join('');
@@ -1202,6 +1230,7 @@
 
         window.submitSoloFinal = (isCorrect) => {
             if (isCorrect) scoreCount += (currentQuiz.q[currentQIndex].points || 1);
+            stopSpeechReader();
             document.getElementById('ind-overlay').classList.add('hidden');
             document.getElementById('ind-overlay').classList.remove('flex');
             setTimeout(() => { solvePlayer?.playVideo(); }, 500);
@@ -1252,6 +1281,7 @@
             if (soloGameFinished) return; 
             soloGameFinished = true;
             
+            stopSpeechReader();
             window.switchScreen('finish');
             const totalPossible = currentQuiz.q.reduce((acc, q) => acc + (q.points || 1), 0);
             const scoreText = `${scoreCount} / ${totalPossible}`;
@@ -1551,6 +1581,10 @@
                 <div class="bg-white p-8 rounded-[3rem] border shadow-sm flex flex-col gap-6 text-center">
                     <h2 class="text-2xl font-black text-indigo-600">Индивидуално</h2>
                     <input type="text" id="ind-quiz-code" placeholder="Код на урок" class="w-full p-4 bg-slate-50 rounded-2xl border-2 text-center font-bold outline-none">
+                    <label for="ind-sop-mode" class="flex items-center justify-center gap-3 bg-indigo-50 border border-indigo-100 rounded-xl p-3 cursor-pointer">
+                        <input type="checkbox" id="ind-sop-mode" class="w-5 h-5 accent-indigo-600">
+                        <span class="text-xs font-black uppercase text-indigo-700">СОП режим (гласов четец + по-едър текст)</span>
+                    </label>
                     <button onclick="window.startIndividual()" class="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black uppercase shadow-xl hover:bg-indigo-700 transition-all text-xs shadow-indigo-200">Започни</button>
                 </div>
                 <div class="bg-white p-8 rounded-[3rem] border-2 border-emerald-500 shadow-2xl flex flex-col gap-6 text-center md:scale-105">
