@@ -688,49 +688,11 @@
             let totalAnswers = 0;
             let totalCorrect = 0;
 
-            // Per-question stats (correct/wrong/missed)
-            const questionStats = quizQuestions.map((q, idx) => ({
-                idx,
-                text: q?.text || `Въпрос ${idx + 1}`,
-                correct: 0,
-                wrong: 0,
-                answered: 0,
-                missed: 0,
-                participants: participantsCount,
-                fastestMs: null,
-                fastestName: null
-            }));
-
             lastFetchedParticipants.forEach(p => {
                 const answersObj = p.answers || {};
                 const values = Object.values(answersObj);
                 totalAnswers += values.length;
                 totalCorrect += values.filter(a => a === true).length;
-
-                quizQuestions.forEach((_, qIdx) => {
-                    let ans = answersObj[qIdx];
-                    if (ans === undefined) ans = answersObj[String(qIdx)];
-                    if (ans === true) {
-                        questionStats[qIdx].correct += 1;
-                        questionStats[qIdx].answered += 1;
-                    } else if (ans === false) {
-                        questionStats[qIdx].wrong += 1;
-                        questionStats[qIdx].answered += 1;
-                    }
-
-                    let reaction = p.reactionMs?.[qIdx];
-                    if (reaction === undefined) reaction = p.reactionMs?.[String(qIdx)];
-                    if (typeof reaction === 'number' && reaction >= 0) {
-                        if (questionStats[qIdx].fastestMs === null || reaction < questionStats[qIdx].fastestMs) {
-                            questionStats[qIdx].fastestMs = reaction;
-                            questionStats[qIdx].fastestName = p.name || 'Участник';
-                        }
-                    }
-                });
-            });
-
-            questionStats.forEach((q) => {
-                q.missed = Math.max(0, q.participants - q.answered);
             });
 
             // Top progress bar
@@ -774,39 +736,16 @@
                     : '⚡ Най-бърз отговор: няма данни';
             }
 
-            // Per-question stats cards
-            const questionStatsGrid = document.getElementById('question-stats-grid');
-            if (questionStatsGrid) {
-                questionStatsGrid.innerHTML = questionStats.length
-                    ? questionStats.map((q) => {
-                        const accuracy = q.answered > 0 ? Math.round((q.correct / q.answered) * 100) : 0;
-                        const responseRate = q.participants > 0 ? Math.round((q.answered / q.participants) * 100) : 0;
-                        return `
-                        <div class="p-3 rounded-xl border bg-slate-50/70">
-                            <div class="flex items-center justify-between mb-1">
-                                <span class="text-[10px] font-black uppercase text-slate-500">Въпрос ${q.idx + 1}</span>
-                                <span class="text-[10px] font-black px-2 py-0.5 rounded-lg ${accuracy >= 70 ? 'bg-emerald-100 text-emerald-700' : (accuracy >= 40 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700')}">${accuracy}%</span>
-                            </div>
-                            <p class="text-[11px] font-bold text-slate-700 truncate">${q.text}</p>
-                            <div class="mt-2 grid grid-cols-3 gap-1 text-[10px] font-black text-center">
-                                <div class="bg-emerald-100 text-emerald-700 rounded-lg py-1">В ${q.correct}</div>
-                                <div class="bg-rose-100 text-rose-700 rounded-lg py-1">Г ${q.wrong}</div>
-                                <div class="bg-slate-200 text-slate-600 rounded-lg py-1">П ${q.missed}</div>
-                            </div>
-                            <p class="mt-1 text-[10px] text-slate-500 font-bold">Отговорили: ${q.answered}/${q.participants} (${responseRate}%)</p>
-                            <p class="mt-1 text-[10px] text-indigo-600 font-bold">⚡ ${q.fastestMs !== null ? `Най-бърз: ${q.fastestName} (${(q.fastestMs / 1000).toFixed(2)}s)` : 'Най-бърз: няма данни'}</p>
-                        </div>`;
-                    }).join('')
-                    : '<div class="text-[11px] text-slate-400 italic">Няма заредени въпроси.</div>';
-            }
-
-            // Leaderboard with score + accuracy + answered count
+            // Leaderboard first: score, second: accuracy
             const leaderboard = [...lastFetchedParticipants].map((p) => {
                 const answersObj = p.answers || {};
                 const givenAnswers = Object.values(answersObj).filter(v => v === true || v === false).length;
                 const correctAnswers = Object.values(answersObj).filter(v => v === true).length;
                 const accuracy = givenAnswers > 0 ? Math.round((correctAnswers / givenAnswers) * 100) : 0;
-                return { ...p, givenAnswers, correctAnswers, accuracy };
+
+                const reactionValues = Object.values(p.reactionMs || {}).filter(v => typeof v === 'number' && v >= 0);
+                const bestReactionMs = reactionValues.length ? Math.min(...reactionValues) : null;
+                return { ...p, givenAnswers, correctAnswers, accuracy, bestReactionMs };
             }).sort((a, b) => (b.score - a.score) || (b.accuracy - a.accuracy));
 
             document.getElementById('host-results-body').innerHTML = leaderboard
@@ -818,7 +757,7 @@
                             <span class="text-lg">${p.avatar || '👤'}</span>
                             <span class="truncate">${p.name}</span>
                         </div>
-                        <div class="mt-1 text-[10px] text-slate-400 font-bold">Отг.: ${p.givenAnswers}/${quizQuestions.length || 0} · Точност: ${p.accuracy}%</div>
+                        <div class="mt-1 text-[10px] text-slate-400 font-bold">Отг.: ${p.givenAnswers}/${quizQuestions.length || 0} · Точност: ${p.accuracy}%${p.bestReactionMs !== null ? ` · ⚡ ${(p.bestReactionMs / 1000).toFixed(2)}s` : ''}</div>
                     </td>
                     <td class="py-3 px-3 text-right"><span class="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-xl font-black text-xs sm:text-sm">${p.score} / ${totalMax || 0}</span></td>
                     <td class="py-3 px-2 text-center">
@@ -951,6 +890,85 @@
                 }
             };
         }
+
+        function getSoloResultsExportModel() {
+            const sortedResults = [...soloResults].sort((a, b) => getTimestampMs(b.timestamp) - getTimestampMs(a.timestamp));
+            const attempts = sortedResults.map((r, idx) => {
+                const parsed = parseScoreValue(r.score);
+                const pct = parsed.total > 0 ? Math.round((parsed.score / parsed.total) * 100) : 0;
+                return {
+                    idx: idx + 1,
+                    studentName: r.studentName || '-',
+                    quizTitle: r.quizTitle || '-',
+                    dateTime: window.formatDate(r.timestamp),
+                    scoreLabel: r.score || '-',
+                    score: parsed.score,
+                    total: parsed.total,
+                    pct
+                };
+            });
+
+            const totalAttempts = attempts.length;
+            const totalScore = attempts.reduce((a, r) => a + r.score, 0);
+            const totalMax = attempts.reduce((a, r) => a + r.total, 0);
+            const avgPct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+
+            const byStudent = new Map();
+            attempts.forEach((r) => {
+                const prev = byStudent.get(r.studentName) || { attempts: 0, score: 0, total: 0 };
+                prev.attempts += 1;
+                prev.score += r.score;
+                prev.total += r.total;
+                byStudent.set(r.studentName, prev);
+            });
+
+            const studentSummary = Array.from(byStudent.entries()).map(([name, v]) => ({
+                name,
+                attempts: v.attempts,
+                scoreLabel: `${v.score}/${v.total}`,
+                pct: v.total > 0 ? Math.round((v.score / v.total) * 100) : 0
+            })).sort((a, b) => b.pct - a.pct || b.attempts - a.attempts);
+
+            return {
+                attempts,
+                studentSummary,
+                summary: { totalAttempts, totalScore, totalMax, avgPct }
+            };
+        }
+
+        window.exportSoloResultsExcel = () => {
+            const model = getSoloResultsExportModel();
+            if (model.attempts.length === 0) return window.showMessage("Няма индивидуални резултати за експорт.", "error");
+
+            const wb = XLSX.utils.book_new();
+
+            const summaryRows = [
+                ["ОБЩО ОПИТИ", model.summary.totalAttempts],
+                ["ОБЩ РЕЗУЛТАТ", `${model.summary.totalScore}/${model.summary.totalMax}`],
+                ["СРЕДЕН УСПЕХ", `${model.summary.avgPct}%`],
+                []
+            ];
+            const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+            XLSX.utils.book_append_sheet(wb, wsSummary, "Обобщение");
+
+            const attemptsRows = [
+                ["#", "Ученик", "Урок", "Дата/Час", "Точки", "% Успех"],
+                ...model.attempts.map(r => [r.idx, r.studentName, r.quizTitle, r.dateTime, r.scoreLabel, `${r.pct}%`])
+            ];
+            const wsAttempts = XLSX.utils.aoa_to_sheet(attemptsRows);
+            XLSX.utils.book_append_sheet(wb, wsAttempts, "Индивидуални_Опити");
+
+            const studentRows = [
+                ["Ученик", "Опити", "Точки", "% Успех"],
+                ...model.studentSummary.map(r => [r.name, r.attempts, r.scoreLabel, `${r.pct}%`])
+            ];
+            const wsStudents = XLSX.utils.aoa_to_sheet(studentRows);
+            XLSX.utils.book_append_sheet(wb, wsStudents, "По_Ученици");
+
+            const timestamp = new Date().toISOString().slice(0,19).replace(/[-:T]/g,"");
+            XLSX.writeFile(wb, `solo_results_${timestamp}.xlsx`);
+            window.showMessage("Индивидуалният отчет е изтеглен.");
+        };
 
         window.exportExcel = () => {
             const data = getResultsData();
@@ -1868,7 +1886,10 @@
                 </div>
                 <div class="space-y-4">
                     <h3 class="text-base font-black flex items-center gap-2 text-indigo-600 px-2"><i data-lucide="users"></i> Резултати</h3>
-                    <p id="solo-results-summary" class="text-[11px] text-slate-400 font-bold px-2">Все още няма резултати за този профил.</p>
+                    <div class="flex items-center justify-between gap-3 px-2">
+                        <p id="solo-results-summary" class="text-[11px] text-slate-400 font-bold">Все още няма резултати за този профил.</p>
+                        <button onclick="window.exportSoloResultsExcel()" class="shrink-0 bg-indigo-600 text-white px-3 py-2 rounded-xl font-black uppercase text-[10px] shadow hover:bg-indigo-700 transition-all">Експорт Excel</button>
+                    </div>
                     <div class="bg-white rounded-[2.5rem] border shadow-sm h-[450px] overflow-hidden flex flex-col">
                         <div class="overflow-y-auto flex-1 custom-scrollbar">
                             <table class="w-full text-left">
@@ -2005,10 +2026,7 @@
                     <div id="host-setup-area" class="bg-white p-12 rounded-[3rem] text-center shadow-sm border"><button onclick="window.initHostPlayer()" class="w-full py-6 bg-indigo-600 text-white rounded-2xl font-black uppercase shadow-xl">Започни Видеото</button></div>
                 </div>
                 <div class="lg:col-span-4 bg-white rounded-[3rem] flex flex-col h-[500px] border shadow-sm overflow-hidden">
-                        <div class="p-5 border-b font-black uppercase text-[10px] text-slate-500 text-center">Класиране и анализ</div>
-                        <div class="p-3 border-b bg-slate-50/70">
-                            <div id="question-stats-grid" class="grid grid-cols-1 gap-2 max-h-[180px] overflow-y-auto custom-scrollbar"></div>
-                        </div>
+                        <div class="p-5 border-b font-black uppercase text-[10px] text-slate-500 text-center">Класиране</div>
                         <div class="flex-1 overflow-y-auto p-3 custom-scrollbar">
                             <table class="w-full"><tbody id="host-results-body"></tbody></table>
                         </div>
