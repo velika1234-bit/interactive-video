@@ -8,6 +8,9 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Library for real Excel files (.xlsx) -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.mini.min.js"></script>
+    <!-- PDF export libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -74,6 +77,17 @@
         window.tempLiveSelection = null;
 
         const AVATARS = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐦", "🐤", "🦄", "🐝", "🦋", "🐌", "🐞", "🐙", "🐬"];
+
+        // --- SAFE DOM HELPERS ---
+        const safeSetText = (id, text) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = text;
+        };
+
+        const safeSetHTML = (id, html) => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = html;
+        };
 
         // --- AUTH LOGIC ---
         onAuthStateChanged(auth, async (u) => { 
@@ -278,15 +292,15 @@
             const codeField = document.getElementById('auth-teacher-code-container');
             
             if (authMode === 'register') {
-                title.innerText = "Регистрация на Учител";
-                btn.innerText = "Регистрирай се";
-                toggleText.innerHTML = 'Вече имате акаунт? <span class="underline font-black cursor-pointer">Влезте тук</span>';
-                codeField.classList.remove('hidden');
+                if (title) title.innerText = "Регистрация на Учител";
+                if (btn) btn.innerText = "Регистрирай се";
+                if (toggleText) toggleText.innerHTML = 'Вече имате акаунт? <span class="underline font-black cursor-pointer">Влезте тук</span>';
+                codeField?.classList.remove('hidden');
             } else {
-                title.innerText = "Вход за Учители";
-                btn.innerText = "Влез";
-                toggleText.innerHTML = 'Нямате акаунт? <span class="underline font-black cursor-pointer">Регистрирайте се</span>';
-                codeField.classList.add('hidden');
+                if (title) title.innerText = "Вход за Учители";
+                if (btn) btn.innerText = "Влез";
+                if (toggleText) toggleText.innerHTML = 'Нямате акаунт? <span class="underline font-black cursor-pointer">Регистрирайте се</span>';
+                codeField?.classList.add('hidden');
             }
         };
 
@@ -545,27 +559,41 @@
                 if(e.code === 'permission-denied') window.showRulesHelpModal();
             }
 
-            participantStorageMode = 'legacy';
-            const subscribeHostParticipants = (legacy = false) => {
-                participantStorageMode = legacy ? 'legacy' : 'session';
-                const source = legacy ? getLegacyParticipantsCollection() : getParticipantsCollection(sessionDocId);
-                return onSnapshot(source, (snap) => {
-                    let participants = snap.docs.map(d => ({...d.data(), id: d.id}));
-                    if (legacy) participants = participants.filter(p => p.sessionId === sessionID);
-                    lastFetchedParticipants = participants;
-                    renderHostDashboard();
-                }, (error) => {
-                    console.error("Participants snapshot error:", error);
-                    if (!legacy) {
-                        const fallbackUnsub = subscribeHostParticipants(true);
-                        unsubscribes.push(fallbackUnsub);
-                    }
-                    if(error.code === 'permission-denied') window.showRulesHelpModal();
+            participantStorageMode = 'session';
+            let sessionParticipants = [];
+            let legacyParticipants = [];
+
+            const mergeAndRenderParticipants = () => {
+                const map = new Map();
+                sessionParticipants.forEach((part) => {
+                    map.set(part.id, { ...part, _source: 'session' });
                 });
+                legacyParticipants.forEach((part) => {
+                    if (!map.has(part.id)) map.set(part.id, { ...part, _source: 'legacy' });
+                });
+                lastFetchedParticipants = Array.from(map.values());
+                renderHostDashboard();
             };
-            
-            const unsub = subscribeHostParticipants(false); 
-            unsubscribes.push(unsub);
+
+            const unsubSession = onSnapshot(getParticipantsCollection(sessionDocId), (snap) => {
+                sessionParticipants = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+                mergeAndRenderParticipants();
+            }, (error) => {
+                console.error('Session participants snapshot error:', error);
+                if (error.code === 'permission-denied') window.showRulesHelpModal();
+            });
+
+            const unsubLegacy = onSnapshot(getLegacyParticipantsCollection(), (snap) => {
+                legacyParticipants = snap.docs
+                    .map(d => ({ ...d.data(), id: d.id }))
+                    .filter(p => p.sessionId === sessionID);
+                mergeAndRenderParticipants();
+            }, (error) => {
+                console.error('Legacy participants snapshot error:', error);
+                if (error.code === 'permission-denied') window.showRulesHelpModal();
+            });
+
+            unsubscribes.push(unsubSession, unsubLegacy);
         };
 
         window.initHostPlayer = () => {
@@ -608,7 +636,10 @@
         window.deleteParticipant = async (id) => {
             if (!confirm("Сигурни ли сте, че искате да премахнете този участник?")) return;
             try {
-                await deleteDoc(getActiveParticipantRef(sessionDocId, id));
+                await Promise.allSettled([
+                    deleteDoc(getParticipantRef(sessionDocId, id)),
+                    deleteDoc(getLegacyParticipantRef(id))
+                ]);
                 window.showMessage("Участникът е премахнат.", "info");
             } catch (e) {
                 console.error(e);
@@ -747,44 +778,38 @@
             window.showMessage("Excel файлът е генериран!");
         };
 
-        window.printResults = () => {
+        window.exportPDF = () => {
             const data = getResultsData();
-            if (data.length === 0) return window.showMessage("Няма данни за печат.", "error");
+            if (data.length === 0) return window.showMessage("Няма данни за PDF експорт.", "error");
 
-            let html = `
-                <html>
-                <head>
-                    <title>Резултати Сесия: ${sessionID}</title>
-                    <style>
-                        body { font-family: sans-serif; padding: 20px; }
-                        h1 { text-align: center; color: #333; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
-                        th { background-color: #f2f2f2; font-weight: bold; }
-                        tr:nth-child(even) { background-color: #f9f9f9; }
-                    </style>
-                </head>
-                <body>
-                    <h1>Резултати от сесия: ${sessionID}</h1>
-                    <table>
-                        <thead>
-                            <tr>${data[0].map(h => `<th>${h}</th>`).join('')}</tr>
-                        </thead>
-                        <tbody>
-                            ${data.slice(1).map(row => `
-                                <tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </body>
-                </html>
-            `;
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                return window.showMessage("PDF библиотеката не е заредена.", "error");
+            }
 
-            const printWin = window.open('', '_blank');
-            printWin.document.write(html);
-            printWin.document.close();
-            printWin.focus();
-            setTimeout(() => { printWin.print(); }, 500);
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.text(`VideoQuiz - Резултати от сесия ${sessionID}`, 40, 40);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.text(`Дата: ${new Date().toLocaleString('bg-BG')}`, 40, 58);
+
+            const [head, ...body] = data;
+            doc.autoTable({
+                head: [head],
+                body,
+                startY: 72,
+                theme: 'grid',
+                styles: { fontSize: 9, cellPadding: 5 },
+                headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255] },
+                alternateRowStyles: { fillColor: [248, 250, 252] }
+            });
+
+            const timestamp = new Date().toISOString().slice(0,19).replace(/[-:T]/g,"");
+            doc.save(`results_${sessionID}_${timestamp}.pdf`);
+            window.showMessage("PDF файлът е генериран!");
         };
 
         // --- STUDENT CLIENT LOGIC ---
@@ -823,12 +848,14 @@
 
                 if (pSnap.exists()) {
                     found = true;
+                    participantStorageMode = 'session';
                 } else {
                     // Check legacy
                     pSnap = await getDoc(legacyPartRef);
                     if (pSnap.exists() && pSnap.data().sessionId === pin) {
                          found = true;
                          targetRef = legacyPartRef;
+                         participantStorageMode = 'legacy';
                     }
                 }
                 
@@ -841,15 +868,24 @@
                      studentNameValue = d.name; // Keep original name
                      window.showMessage("Върнахте се в сесията!", "info");
                 } else {
-                    // NEW ENTRY - default to session path if possible (implied by write rule availability), but use legacy if that fails?
-                    // We'll try the legacy path for now as it seems to be the default for the user's setup
-                    targetRef = legacyPartRef; 
-                    currentParticipantRef = legacyPartRef;
-                    
-                    await setDoc(targetRef, { 
-                        name: studentNameValue, sessionId: pin, avatar: randomAvatar, score: 0, 
-                        finished: false, lastAnsweredIdx: -1, answers: {} 
-                    });
+                    // NEW ENTRY: first try session-scoped participant document; fallback to legacy only if needed
+                    const participantPayload = {
+                        name: studentNameValue, sessionId: pin, avatar: randomAvatar, score: 0,
+                        finished: false, lastAnsweredIdx: -1, answers: {}
+                    };
+
+                    try {
+                        targetRef = sessionPartRef;
+                        currentParticipantRef = sessionPartRef;
+                        participantStorageMode = 'session';
+                        await setDoc(sessionPartRef, participantPayload, { merge: true });
+                    } catch (writeErr) {
+                        if (writeErr?.code !== 'permission-denied') throw writeErr;
+                        targetRef = legacyPartRef;
+                        currentParticipantRef = legacyPartRef;
+                        participantStorageMode = 'legacy';
+                        await setDoc(legacyPartRef, participantPayload, { merge: true });
+                    }
                 }
 
                 const unsub = onSnapshot(sessionRef, (snap) => {
@@ -1475,7 +1511,7 @@
                     <!-- Бутони за експорт - показват се в края -->
                     <div id="export-buttons-container" class="hidden gap-2">
                         <button onclick="window.exportExcel()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-4 rounded-xl font-black uppercase text-xs shadow-lg transition-all flex items-center gap-2"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Excel</button>
-                        <button onclick="window.printResults()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-4 rounded-xl font-black uppercase text-xs shadow-lg transition-all flex items-center gap-2"><i data-lucide="printer" class="w-4 h-4"></i> Печат</button>
+                        <button onclick="window.exportPDF()" class="bg-slate-700 hover:bg-slate-800 text-white px-6 py-4 rounded-xl font-black uppercase text-xs shadow-lg transition-all flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4"></i> PDF</button>
                     </div>
                     <button onclick="window.finishLiveSession()" class="bg-rose-500 px-6 py-4 rounded-xl font-black uppercase text-xs shadow-lg">Край</button>
                     <button onclick="window.quitHostSession()" class="bg-white/10 px-6 py-4 rounded-xl font-black uppercase text-xs">Назад</button>
