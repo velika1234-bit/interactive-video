@@ -1,3 +1,76 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Interactive Video Quiz</title>
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Lucide (фиксирана версия + защита) -->
+<script defer src="https://unpkg.com/lucide@0.454.0/dist/umd/lucide.min.js"></script>
+<script>
+window.lucide = window.lucide || { createIcons(){} };
+</script>
+
+<!-- YouTube API -->
+<script src="https://www.youtube.com/iframe_api"></script>
+
+<!-- XLSX -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+body { font-family: system-ui, Arial, sans-serif; }
+</style>
+</head>
+
+<body class="bg-slate-50">
+
+<div id="app" class="min-h-screen">
+  
+  <!-- Loader -->
+  <div id="auth-loader" class="fixed inset-0 flex items-center justify-center bg-white z-50">
+    <div class="text-xl font-bold">Зареждане…</div>
+  </div>
+
+  <!-- Main screen -->
+  <div id="screen-welcome" class="p-8">
+    <h1 class="text-3xl font-bold mb-4">Video Quiz</h1>
+    <p>Приложението стартира…</p>
+  </div>
+
+</div>
+
+<!-- ========================= -->
+<!-- ТУК СЛОЖИ ТВОЯ MODULE JS -->
+<!-- ========================= -->
+
+<script type="module">
+
+// 🔻🔻🔻 ПЕЙСТНИ ТУК ЦЕЛИЯ ТИ ГОЛЯМ FIREBASE / APP SCRIPT 🔻🔻🔻
+
+
+
+// безопасно извикване на иконите
+function safeLucide(){
+  try { window.lucide.createIcons(); } catch {}
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("auth-loader")?.remove();
+  safeLucide();
+});
+
+</script>
+
+</body>
+</html>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import {
