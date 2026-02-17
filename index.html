@@ -50,13 +50,12 @@
     .sop-text { font-size: 1.5rem !important; line-height: 1.3 !important; }
     .sop-btn { font-size: 1.25rem !important; padding: 1.5rem !important; }
     #ind-overlay { z-index: 2147483647 !important; }
+    @keyframes auto-hide {
+    0% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { opacity: 0; visibility: hidden; }
     html, body { height: 100%; }
     #app { height: 100dvh; } /* dVh оправя мобилни/скрол */
-
-    @keyframes auto-hide {
-  0% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { opacity: 0; visibility: hidden; }
 }
 #auth-loader { animation: auto-hide 4s linear forwards; pointer-events: none; }
   </style>
