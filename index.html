@@ -324,42 +324,7 @@
       </div>
 
       <!-- Teacher side -->
-      <div id="welcome-teacher-side" class="hidden md:flex w-full md:w-[420px] bg-slate-900 text-white p-8 flex-col justify-center relative overflow-hidden shrink-0 h-full">
-        <button onclick="window.toggleMobileView('student')" class="md:hidden absolute top-6 left-6 text-slate-400 hover:text-white flex items-center gap-2 font-bold text-sm">
-          <i data-lucide="arrow-left" class="w-4 h-4"></i> Назад
-        </button>
-
-        <div class="relative z-10 w-full max-w-sm mx-auto space-y-6">
-          <div>
-            <h2 class="text-3xl font-black mb-1">Учителски вход</h2>
-            <p class="text-slate-400 text-sm">Управление на уроци.</p>
-          </div>
-
-          <form onsubmit="event.preventDefault(); window.handleAuthSubmit();" class="space-y-4">
-            <div class="space-y-1">
-              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1">Имейл</label>
-              <input type="email" id="auth-email" placeholder="name@school.bg" class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:bg-white/10 focus:border-brand-500 outline-none transition-all font-bold text-sm" autocomplete="username">
-            </div>
-
-            <div class="space-y-1">
-              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1">Парола</label>
-              <input type="password" id="auth-password" placeholder="••••••••" class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:bg-white/10 focus:border-brand-500 outline-none transition-all font-bold text-sm" autocomplete="current-password">
-            </div>
-
-            <div id="auth-teacher-code-container" class="hidden space-y-1">
-              <label class="text-[10px] font-bold text-amber-500 uppercase tracking-wider pl-1">Код</label>
-              <input type="password" id="auth-teacher-code" placeholder="vilidaf76" class="w-full p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-200 placeholder-amber-500/50 outline-none font-bold text-center tracking-widest text-sm">
-            </div>
-
-            <button type="submit" id="auth-submit-btn" class="w-full py-4 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-black uppercase tracking-wider shadow-lg active:scale-[0.98] transition-all">Влез</button>
-          </form>
-
-          <div class="text-center pt-4 border-t border-white/5">
-            <button onclick="window.toggleAuthMode()" class="text-sm text-slate-400 hover:text-white font-bold transition-colors">
-              Нямате акаунт? <span class="text-brand-400">Регистрация</span>
-            </button>
-          </div>
-        </div>
+              </div>
       </div>
     </div>
     <!-- SCREEN: TEACHER DASHBOARD -->
