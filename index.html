@@ -100,6 +100,34 @@ body { overflow:hidden; }
     </div>
   </div>
 </div>
+<!-- IMPORT/EXPORT MODAL -->
+<div id="ieModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl overflow-hidden">
+    <div class="p-4 border-b border-slate-700 flex items-center justify-between">
+      <div class="font-black text-lg" id="ieTitle">Експорт / Импорт</div>
+      <button onclick="closeIE()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700">✕</button>
+    </div>
+    <div class="p-4 space-y-3">
+      <p class="text-slate-300 text-sm">
+        Постави кода тук. Това е по-надеждно от prompt().
+      </p>
+      <textarea id="ieText" class="w-full h-64 bg-slate-800 border border-slate-700 rounded-xl p-3 font-mono text-xs text-slate-100"
+        placeholder="Постави JSON тук..."></textarea>
+      <div id="ieErr" class="text-rose-300 text-sm font-bold"></div>
+      <div class="flex gap-2 flex-wrap">
+        <button onclick="doImport()" class="bg-sky-600 hover:bg-sky-500 px-4 py-2 rounded-lg font-bold">
+          Импорт
+        </button>
+        <button onclick="copyIE()" class="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded-lg font-bold">
+          Копирай
+        </button>
+        <button onclick="closeIE()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg">
+          Затвори
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="https://www.youtube.com/iframe_api"></script>
 
@@ -208,16 +236,87 @@ function editQ(i){
 
 function delQ(i){ QUIZ.questions.splice(i,1); renderList(); }
 
+// --- Import/Export UI (replaces prompt-based) ---
+function openIE(title, text){
+  document.getElementById("ieTitle").innerText = title;
+  document.getElementById("ieText").value = text || "";
+  document.getElementById("ieErr").innerText = "";
+  document.getElementById("ieModal").classList.remove("hidden");
+}
+function closeIE(){
+  document.getElementById("ieModal").classList.add("hidden");
+}
+function copyIE(){
+  const ta = document.getElementById("ieText");
+  ta.select();
+  document.execCommand("copy");
+  document.getElementById("ieErr").innerText = "✅ Копирано!";
+}
+
 function exportJSON(){
- prompt("Копирай урока:", JSON.stringify(QUIZ));
+  // Подреждаме въпросите по време, за да е чисто
+  const clean = {
+    videoId: QUIZ.videoId,
+    questions: [...QUIZ.questions].sort((a,b)=>a.time-b.time)
+  };
+  openIE("Експорт (копирай кода)", JSON.stringify(clean));
 }
 
 function importJSON(){
- const t=prompt("Постави JSON:");
- if(!t) return;
- QUIZ = JSON.parse(t);
- renderList();
+  openIE("Импорт (постави кода и натисни Импорт)", "");
 }
+
+function doImport(){
+  const raw = document.getElementById("ieText").value.trim();
+  const err = document.getElementById("ieErr");
+  err.innerText = "";
+
+  if(!raw){
+    err.innerText = "⚠️ Постави код първо.";
+    return;
+  }
+function saveLocal(){
+  localStorage.setItem("videoquiz_quiz", JSON.stringify(QUIZ));
+}
+function loadLocal(){
+  const t = localStorage.getItem("videoquiz_quiz");
+  if(!t) return;
+  try{
+    QUIZ = JSON.parse(t);
+    const yt = document.getElementById("ytId");
+    if(yt) yt.value = QUIZ.videoId;
+    renderList();
+  }catch(e){}
+}
+
+  try{
+    const obj = JSON.parse(raw);
+
+    // Валидиране за лаик: да не импортираш нещо грешно
+    if(!obj || typeof obj !== "object") throw new Error("Кодът не е обект.");
+    if(!obj.videoId || typeof obj.videoId !== "string") throw new Error("Липсва videoId.");
+    if(!Array.isArray(obj.questions)) throw new Error("Липсва масив questions.");
+
+    // Мини нормализация
+    obj.questions.forEach((q,i)=>{
+      if(typeof q.time !== "number") throw new Error("Въпрос #" + (i+1) + " няма time (число).");
+      if(typeof q.text !== "string") throw new Error("Въпрос #" + (i+1) + " няма text.");
+      if(!Array.isArray(q.options) || q.options.length !== 4) throw new Error("Въпрос #" + (i+1) + " трябва да има 4 опции.");
+      if(typeof q.correctIndex !== "number") throw new Error("Въпрос #" + (i+1) + " няма correctIndex (число).");
+    });
+
+    QUIZ = obj;
+    // ако има input поле за видео id, обновяваме го
+    const yt = document.getElementById("ytId");
+    if(yt) yt.value = QUIZ.videoId;
+
+    renderList();
+    err.innerText = "✅ Импортът е успешен!";
+  } catch(e){
+    err.innerText = "❌ Грешка в кода: " + (e.message || e);
+  }
+}
+
 </script>
 
 </body>
