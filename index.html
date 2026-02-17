@@ -50,6 +50,9 @@
     .sop-text { font-size: 1.5rem !important; line-height: 1.3 !important; }
     .sop-btn { font-size: 1.25rem !important; padding: 1.5rem !important; }
     #ind-overlay { z-index: 2147483647 !important; }
+    html, body { height: 100%; }
+    #app { height: 100dvh; } /* dVh оправя мобилни/скрол */
+
     @keyframes auto-hide {
   0% { opacity: 1; }
   90% { opacity: 1; }
@@ -59,9 +62,9 @@
   </style>
 </head>
 
-<body class="bg-slate-50 text-slate-800 h-screen overflow-hidden selection:bg-brand-100 selection:text-brand-700">
+<body class="bg-slate-50 text-slate-800 min-h-screen w-full overflow-hidden selection:bg-brand-100 selection:text-brand-700">
 
-  <div id="app" class="h-full flex flex-col relative">
+  <div id="app" class="min-h-screen w-full flex flex-col relative">
 
     <!-- Loader -->
     <div id="auth-loader" class="fixed inset-0 bg-white z-[9999] flex items-center justify-center flex-col gap-6">
