@@ -140,24 +140,25 @@
   };
 
   window.switchScreen = (n) => {
-    document.querySelectorAll("#app > div").forEach(d => d.classList.add("hidden"));
-    const t = document.getElementById("screen-" + n);
-    if (t) t.classList.remove("hidden");
+  document.querySelectorAll("#app > div").forEach(d => d.classList.add("hidden"));
+  const t = document.getElementById("screen-" + n);
+  if (t) t.classList.remove("hidden");
 
-    if (n === "teacher-dashboard") {
-      if (!user || !isTeacher) {
-        window.showMessage("Нямате учителски достъп.", "error");
-        document.getElementById("screen-welcome")?.classList.remove("hidden");
-        return;
-      }
-      window.loadMyQuizzes();
-      window.loadSoloResults();
-      window.loadClassHistory();
+  if (n === "teacher-dashboard") {
+    if (!user || !isTeacher) {
+      window.showMessage("Нямате учителски достъп.", "error");
+      document.getElementById("screen-welcome")?.classList.remove("hidden");
+      return;
     }
+    window.loadMyQuizzes();
+    window.loadSoloResults();
+    window.loadClassHistory();
+  }
 
-    lucide?.createIcons();
-    window.scrollTo(0, 0);
-  };
+  safeLucide();
+  window.scrollTo(0, 0);
+};
+
 
   window.toggleAuthMode = () => {
     authMode = authMode === "login" ? "register" : "login";
@@ -1217,21 +1218,30 @@
     window.switchScreen(isTeacher ? "teacher-dashboard" : "welcome");
   });
 
-  window.addEventListener("DOMContentLoaded", () => {
-    const p = new URLSearchParams(window.location.search).get("pin");
-    if (p) {
-      setTimeout(() => {
-        window.switchTab("class");
-        const el = document.getElementById("live-pin");
-        if (el) {
-          el.value = p;
-          window.showMessage("ПИН зареден!", "success");
-        }
-      }, 500);
-    }
-    setTimeout(() => document.getElementById("auth-loader")?.classList.add("hidden"), 2500);
-    lucide?.createIcons();
-  });
+ window.addEventListener("DOMContentLoaded", () => {
+  const p = new URLSearchParams(window.location.search).get("pin");
+  if (p) {
+    setTimeout(() => {
+      window.switchTab("class");
+      const el = document.getElementById("live-pin");
+      if (el) {
+        el.value = p;
+        window.showMessage("ПИН зареден!", "success");
+      }
+    }, 500);
+  }
+
+  setTimeout(() => document.getElementById("auth-loader")?.classList.add("hidden"), 2500);
+
+  // lucide може да се зареди след DOMContentLoaded → опитваме няколко пъти
+  let tries = 0;
+  const it = setInterval(() => {
+    tries++;
+    safeLucide();
+    if (window.lucide || tries > 20) clearInterval(it); // ~4 сек max
+  }, 200);
+});
+
 
   window.onYouTubeIframeAPIReady = () => {
     isYTReady = true;
