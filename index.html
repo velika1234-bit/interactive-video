@@ -50,6 +50,12 @@
     .sop-text { font-size: 1.5rem !important; line-height: 1.3 !important; }
     .sop-btn { font-size: 1.25rem !important; padding: 1.5rem !important; }
     #ind-overlay { z-index: 2147483647 !important; }
+    @keyframes auto-hide {
+  0% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { opacity: 0; visibility: hidden; }
+}
+#auth-loader { animation: auto-hide 4s linear forwards; pointer-events: none; }
   </style>
 </head>
 
@@ -649,6 +655,15 @@
     </div>
 
   </div> <!-- /#app -->
+  <script>
+  // Failsafe: маха loader-а дори ако module скриптът не тръгне
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      const l = document.getElementById('auth-loader');
+      if (l) l.classList.add('hidden');
+    }, 2500);
+  });
+</script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import {
