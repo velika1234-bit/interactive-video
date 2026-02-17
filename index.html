@@ -61,7 +61,7 @@ html, body { height: 100%; margin: 0; }
   </style>
 </head>
 
-<body class="bg-slate-50 text-slate-800 min-h-screen h-screen ">
+<body class="bg-slate-50 text-slate-800 min-h-screen h-screen overflow-hidden">
   <div id="app" class="h-full min-h-screen flex flex-col relative">
 
     <!-- Loader -->
@@ -78,8 +78,7 @@ html, body { height: 100%; margin: 0; }
     <div id="msg-container" class="fixed top-6 right-6 z-[10000] flex flex-col items-end pointer-events-none gap-2"></div>
 
     <!-- SCREEN: WELCOME -->
-    <div id="screen-welcome" class="flex h-full w-full bg-slate-50 relative z-10  flex-col md:flex-row">
-    <div id="screen-welcome" class="flex min-h-screen h-screen w-full ...">
+    <div id="screen-welcome" class="flex h-full w-full bg-slate-50 relative z-10 overflow-hidden flex-col md:flex-row">
 
       <!-- Student side -->
       <div id="welcome-student-side" class="flex-1 relative flex flex-col justify-center items-center p-4 md:p-12 bg-white overflow-y-auto w-full h-full md:h-auto">
@@ -147,7 +146,7 @@ html, body { height: 100%; margin: 0; }
       </div>
 
       <!-- Teacher side -->
-      <div id="welcome-teacher-side" class="hidden md:flex w-full md:w-[420px] bg-slate-900 text-white p-8 flex-col justify-center relative  shrink-0 h-full">
+      <div id="welcome-teacher-side" class="hidden md:flex w-full md:w-[420px] bg-slate-900 text-white p-8 flex-col justify-center relative overflow-hidden shrink-0 h-full">
         <button onclick="window.toggleMobileView('student')" class="md:hidden absolute top-6 left-6 text-slate-400 hover:text-white flex items-center gap-2 font-bold text-sm">
           <i data-lucide="arrow-left" class="w-4 h-4"></i> Назад
         </button>
@@ -240,7 +239,7 @@ html, body { height: 100%; margin: 0; }
   </style>
 </head>
 
-<body class="bg-slate-50 text-slate-800 h-screen selection:bg-brand-100 selection:text-brand-700">
+<body class="bg-slate-50 text-slate-800 h-screen overflow-hidden selection:bg-brand-100 selection:text-brand-700">
 
   <div id="app" class="h-full flex flex-col relative">
 
@@ -258,7 +257,7 @@ html, body { height: 100%; margin: 0; }
     <div id="msg-container" class="fixed top-6 right-6 z-[10000] flex flex-col items-end pointer-events-none gap-2"></div>
 
     <!-- SCREEN: WELCOME -->
-    <div id="screen-welcome" class="flex h-full w-full bg-slate-50 relative z-10  flex-col md:flex-row">
+    <div id="screen-welcome" class="flex h-full w-full bg-slate-50 relative z-10 overflow-hidden flex-col md:flex-row">
 
       <!-- Student side -->
       <div id="welcome-student-side" class="flex-1 relative flex flex-col justify-center items-center p-4 md:p-12 bg-white overflow-y-auto w-full h-full md:h-auto">
@@ -326,7 +325,7 @@ html, body { height: 100%; margin: 0; }
       </div>
 
       <!-- Teacher side -->
-      <div id="welcome-teacher-side" class="hidden md:flex w-full md:w-[420px] bg-slate-900 text-white p-8 flex-col justify-center relative  shrink-0 h-full">
+      <div id="welcome-teacher-side" class="hidden md:flex w-full md:w-[420px] bg-slate-900 text-white p-8 flex-col justify-center relative overflow-hidden shrink-0 h-full">
         <button onclick="window.toggleMobileView('student')" class="md:hidden absolute top-6 left-6 text-slate-400 hover:text-white flex items-center gap-2 font-bold text-sm">
           <i data-lucide="arrow-left" class="w-4 h-4"></i> Назад
         </button>
@@ -395,7 +394,7 @@ html, body { height: 100%; margin: 0; }
           <div id="my-quizzes-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
         </section>
 
-        <section class="bg-white rounded-3xl border border-slate-200 shadow-sm ">
+        <section class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
           <div class="p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center bg-slate-50/50 gap-4">
             <div class="flex items-center gap-4 bg-white p-1 rounded-xl border border-slate-200">
               <button onclick="window.switchHistoryTab('solo')" id="hist-tab-solo" class="px-4 py-2 rounded-lg font-bold text-xs transition-all bg-brand-600 text-white shadow-sm">Индивидуални</button>
@@ -439,7 +438,7 @@ html, body { height: 100%; margin: 0; }
         </button>
       </header>
 
-      <div class="flex-1 flex flex-col lg:flex-row ">
+      <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
         <div class="flex-1 bg-black relative flex flex-col justify-center">
           <div id="editor-player-container" class="aspect-video w-full max-h-full mx-auto relative z-10"></div>
 
@@ -486,8 +485,8 @@ html, body { height: 100%; margin: 0; }
         </div>
       </div>
 
-      <div class="flex-1 flex flex-col lg:flex-row  p-3 gap-3">
-        <div class="flex-1 bg-black rounded-2xl shadow-xl relative border-4 border-white/20 min-h-[300px]">
+      <div class="flex-1 flex flex-col lg:flex-row overflow-hidden p-3 gap-3">
+        <div class="flex-1 bg-black rounded-2xl shadow-xl overflow-hidden relative border-4 border-white/20 min-h-[300px]">
           <div id="host-video-container" class="w-full h-full"></div>
 
           <div id="host-setup-area" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 backdrop-blur-sm gap-6">
@@ -522,7 +521,7 @@ html, body { height: 100%; margin: 0; }
     </div>
 
     <!-- SCREEN: LIVE CLIENT -->
-    <div id="screen-live-client" class="hidden h-full flex flex-col bg-slate-50 absolute inset-0 z-50 ">
+    <div id="screen-live-client" class="hidden h-full flex flex-col bg-slate-50 absolute inset-0 z-50 overflow-hidden">
       <div class="absolute top-0 left-0 w-full h-2 bg-brand-500 z-20"></div>
 
       <div id="client-waiting" class="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-8">
@@ -1554,4 +1553,4 @@ html, body { height: 100%; margin: 0; }
 </script>
 
 </body>
-</html>
+</html
