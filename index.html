@@ -1,83 +1,275 @@
 <!DOCTYPE html>
 <html lang="bg">
 <head>
-<meta charset="UTF-8">
-<title>VideoQuiz – Clean Base</title>
-
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8" />
+<title>VideoQuiz – Part 2 (Questions)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-html, body {
-  height: 100%;
-  margin: 0;
-  background:#0f172a;
-}
+  html, body { height: 100%; margin: 0; background:#0f172a; }
+  /* за да няма “бяло поле” */
+  body { overflow: hidden; }
 </style>
-
 </head>
 
 <body class="h-full text-white flex flex-col">
 
 <!-- HEADER -->
-<div class="bg-slate-900 p-4 flex justify-between items-center shadow">
-  <h1 class="text-xl font-bold">VideoQuiz — тест база</h1>
-  <button onclick="startVideo()" class="bg-indigo-600 px-4 py-2 rounded-lg font-bold">
-    СТАРТ ВИДЕО
-  </button>
-</div>
+<div class="bg-slate-900 p-4 flex items-center justify-between shadow">
+  <div class="flex items-center gap-3">
+    <div class="w-3 h-3 rounded-full bg-emerald-400"></div>
+    <h1 class="text-lg md:text-xl font-extrabold">VideoQuiz — Част 2 (Въпроси)</h1>
+  </div>
 
-<!-- VIDEO AREA -->
-<div class="flex-1 p-6">
-  <div class="bg-black rounded-xl w-full h-full flex items-center justify-center">
-    <div id="player" class="w-full h-full"></div>
+  <div class="flex items-center gap-2">
+    <input id="ytId" class="hidden md:block bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm w-56"
+           placeholder="YouTube ID (11 знака)" value="dQw4w9WgXcQ">
+    <button onclick="bootPlayer()" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg font-bold">
+      Зареди видео
+    </button>
   </div>
 </div>
 
-<!-- STATUS -->
-<div id="status" class="p-4 text-center text-slate-400">
-  YouTube API зарежда...
+<!-- MAIN -->
+<div class="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 p-4 md:p-6 overflow-hidden">
+
+  <!-- VIDEO -->
+  <div class="bg-black rounded-2xl overflow-hidden relative">
+    <div id="player" class="w-full h-full"></div>
+
+    <!-- overlay (small status) -->
+    <div id="miniStatus" class="absolute top-3 left-3 bg-black/50 backdrop-blur px-3 py-2 rounded-xl text-xs text-slate-200">
+      Зареди видео, после Play.
+    </div>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div class="bg-slate-900/60 border border-slate-700 rounded-2xl overflow-hidden flex flex-col">
+    <div class="p-4 border-b border-slate-700">
+      <div class="flex items-center justify-between">
+        <h2 class="font-black text-lg">Въпроси</h2>
+        <div class="font-mono text-xs bg-slate-800 px-3 py-1 rounded-lg" id="clock">00:00</div>
+      </div>
+      <p class="text-slate-400 text-sm mt-1">Тестов списък. После ще го правим “учителски редактор”.</p>
+    </div>
+
+    <div id="qList" class="flex-1 overflow-auto p-4 space-y-3"></div>
+
+    <div class="p-4 border-t border-slate-700 text-xs text-slate-400">
+      ✅ Част 2 работи без Firebase. Следва: редактор + запис.
+    </div>
+  </div>
 </div>
 
-<!-- YOUTUBE API -->
+<!-- QUESTION MODAL -->
+<div id="qModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur flex items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden">
+    <div class="p-5 border-b border-slate-700 flex items-center justify-between">
+      <div>
+        <div class="text-xs text-slate-400 font-bold uppercase tracking-wider" id="qMeta">Въпрос</div>
+        <h3 class="text-xl font-black" id="qText">...</h3>
+      </div>
+      <button onclick="closeQuestion()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700">✕</button>
+    </div>
+
+    <div class="p-5 space-y-3" id="qOptions"></div>
+
+    <div class="p-5 border-t border-slate-700 flex items-center justify-between gap-3">
+      <div id="qFeedback" class="text-sm font-bold text-slate-300"></div>
+      <button id="btnContinue" onclick="continueVideo()" class="hidden bg-emerald-600 hover:bg-emerald-500 px-5 py-3 rounded-xl font-black">
+        Продължи видеото
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- YT API -->
 <script src="https://www.youtube.com/iframe_api"></script>
 
 <script>
-let player;
-let ytReady = false;
+/** =============================
+ *  1) ДАННИ (тестови въпроси)
+ *  ============================= */
+const QUIZ = {
+  videoId: "dQw4w9WgXcQ",
+  title: "Тестов урок",
+  questions: [
+    {
+      time: 5,
+      text: "Какво представлява видео-урокът?",
+      options: ["Филм", "Обучение с видео", "Реклама", "Клип без цел"],
+      correctIndex: 1
+    },
+    {
+      time: 12,
+      text: "Кое е най-важното в интерактивния урок?",
+      options: ["Да е дълъг", "Да има въпроси", "Да е без звук", "Да е скучен"],
+      correctIndex: 1
+    }
+  ]
+};
 
-function onYouTubeIframeAPIReady() {
-  ytReady = true;
-  document.getElementById("status").innerText = "YouTube готов";
+/** =============================
+ *  2) СЪСТОЯНИЕ
+ *  ============================= */
+let player = null;
+let ytReady = false;
+let timerHandle = null;
+let asked = new Set(); // кои въпроси вече са показани
+let activeQuestion = null;
+
+/** =============================
+ *  3) UI helpers
+ *  ============================= */
+function fmt(sec){
+  sec = Math.max(0, Math.floor(sec || 0));
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${s < 10 ? "0" : ""}${s}`;
 }
 
-function startVideo() {
+function setMiniStatus(t){ document.getElementById("miniStatus").innerText = t; }
 
-  if (!ytReady) {
-    alert("YouTube още не е готов — изчакай 2 секунди и пробвай пак");
-    return;
-  }
+/** =============================
+ *  4) YouTube ready
+ *  ============================= */
+function onYouTubeIframeAPIReady() {
+  ytReady = true;
+  setMiniStatus("YouTube готов. Натисни „Зареди видео“.");
+  renderQuestionsList();
+}
 
-  if (player) {
-    player.playVideo();
-    return;
-  }
+function bootPlayer(){
+  if (!ytReady) { alert("YouTube още се зарежда. Изчакай 1-2 сек."); return; }
 
-  player = new YT.Player('player', {
-    videoId: 'dQw4w9WgXcQ', // тестово видео
-    width: '100%',
-    height: '100%',
-    playerVars: {
-      rel: 0,
-      modestbranding: 1
-    },
+  // вземи ID от input (ако има) иначе от QUIZ
+  const input = document.getElementById("ytId");
+  const newId = (input?.value || "").trim();
+  const vid = newId.length === 11 ? newId : QUIZ.videoId;
+
+  // reset state
+  asked = new Set();
+  activeQuestion = null;
+
+  if (timerHandle) clearInterval(timerHandle);
+
+  // създай/пресъздай player
+  document.getElementById("player").innerHTML = "";
+  player = new YT.Player("player", {
+    videoId: vid,
+    width: "100%",
+    height: "100%",
+    playerVars: { rel: 0, modestbranding: 1 },
     events: {
-      onReady: e => e.target.playVideo()
+      onReady: e => {
+        setMiniStatus("Видео заредено. Пусни Play.");
+        startTick();
+      },
+      onStateChange: e => {
+        // 1 = playing
+        if (e.data === 1) setMiniStatus("Върви...");
+        if (e.data === 2) setMiniStatus("Пауза");
+      }
     }
   });
 }
+
+function startTick(){
+  timerHandle = setInterval(() => {
+    if (!player || typeof player.getCurrentTime !== "function") return;
+
+    const t = player.getCurrentTime();
+    document.getElementById("clock").innerText = fmt(t);
+
+    // търси въпрос, който да се активира
+    const q = QUIZ.questions.find(q => !asked.has(q.time) && t >= q.time);
+    if (q) triggerQuestion(q);
+  }, 300);
+}
+
+/** =============================
+ *  5) Questions
+ *  ============================= */
+function renderQuestionsList(){
+  const box = document.getElementById("qList");
+  box.innerHTML = QUIZ.questions
+    .sort((a,b)=>a.time-b.time)
+    .map(q => `
+      <button class="w-full text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl p-4 transition"
+              onclick="jumpTo(${q.time})">
+        <div class="flex items-center justify-between">
+          <div class="font-black">${q.text}</div>
+          <div class="font-mono text-xs bg-slate-900/60 px-2 py-1 rounded-lg">${fmt(q.time)}</div>
+        </div>
+        <div class="text-xs text-slate-400 mt-1">клик → скок до въпроса</div>
+      </button>
+    `).join("");
+}
+
+function jumpTo(sec){
+  if (!player) { alert("Първо зареди видео."); return; }
+  player.seekTo(sec, true);
+  player.playVideo();
+}
+
+function triggerQuestion(q){
+  asked.add(q.time);
+  activeQuestion = q;
+
+  if (player) player.pauseVideo();
+
+  // modal open
+  document.getElementById("qModal").classList.remove("hidden");
+  document.getElementById("qMeta").innerText = `Въпрос @ ${fmt(q.time)}`;
+  document.getElementById("qText").innerText = q.text;
+
+  const optBox = document.getElementById("qOptions");
+  optBox.innerHTML = "";
+  document.getElementById("qFeedback").innerText = "Избери отговор.";
+  const btn = document.getElementById("btnContinue");
+  btn.classList.add("hidden");
+
+  q.options.forEach((txt, idx) => {
+    const b = document.createElement("button");
+    b.className = "w-full text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl p-4 font-bold transition";
+    b.innerText = txt;
+    b.onclick = () => pickAnswer(idx);
+    optBox.appendChild(b);
+  });
+}
+
+function pickAnswer(idx){
+  if (!activeQuestion) return;
+  const ok = idx === activeQuestion.correctIndex;
+
+  // lock options
+  document.querySelectorAll("#qOptions button").forEach((b, i) => {
+    b.disabled = true;
+    b.classList.remove("hover:bg-slate-700");
+    if (i === activeQuestion.correctIndex) b.classList.add("border-emerald-500");
+    if (i === idx && !ok) b.classList.add("border-rose-500");
+    b.classList.add("opacity-90");
+  });
+
+  document.getElementById("qFeedback").innerText = ok ? "✅ Вярно!" : "❌ Грешно!";
+  document.getElementById("btnContinue").classList.remove("hidden");
+}
+
+function continueVideo(){
+  closeQuestion();
+  if (player) player.playVideo();
+}
+
+function closeQuestion(){
+  document.getElementById("qModal").classList.add("hidden");
+  activeQuestion = null;
+}
 </script>
+
+</body>
+</html>
 
 </body>
 </html>
