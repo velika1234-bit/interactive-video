@@ -881,6 +881,8 @@ function destroyYT(p){
   try{ if(p && typeof p.destroy==="function") p.destroy(); }catch(e){}
 }
 window.bootTeacherPlayer = ()=>{
+  const ok = await window.ensureYouTube(videoId);
+  if (!ok) return;
   if(!ytReady){ toast("YouTube API още зарежда. Изчакай 1-2 сек.", "warn"); return; }
   if(!workingLesson){ toast("Избери урок или натисни „Нов урок“.", "warn"); return; }
   workingLesson.title = (document.getElementById("tTitle").value||"").trim() || "Без име";
