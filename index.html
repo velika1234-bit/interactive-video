@@ -2,324 +2,1101 @@
 <html lang="bg">
 <head>
 <meta charset="UTF-8" />
-<title>VideoQuiz – Part 3 Editor</title>
+<title>VideoQuiz – Part 4 (Library + Student Modes)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-
 <script src="https://cdn.tailwindcss.com"></script>
-
 <style>
-html, body { height:100%; margin:0; background:#0f172a; }
-body { overflow:hidden; }
+  html, body { height:100%; margin:0; background:#0f172a; }
+  body { overflow:hidden; }
 </style>
 </head>
 
-<body class="h-full text-white flex flex-col">
+<body class="h-full text-white">
+<div id="app" class="h-full flex flex-col">
 
-<!-- HEADER -->
-<div class="bg-slate-900 p-4 flex flex-wrap gap-3 items-center justify-between shadow">
-  <h1 class="text-xl font-black">VideoQuiz — Редактор</h1>
+  <!-- TOP BAR -->
+  <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-3 h-3 rounded-full bg-emerald-400"></div>
+      <div class="font-black text-lg">VideoQuiz</div>
+      <div id="top-sub" class="text-slate-400 text-sm hidden md:block">локална версия (без облак)</div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="btn-home" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-bold" onclick="go('welcome')">Начало</button>
+      <button id="btn-help" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-bold" onclick="openHelp()">Помощ</button>
+    </div>
+  </header>
 
-  <div class="flex gap-2 flex-wrap">
-    <input id="ytId" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm w-56"
-           value="dQw4w9WgXcQ" placeholder="YouTube ID">
+  <!-- SCREENS -->
+  <main class="flex-1 overflow-hidden">
 
-    <button onclick="bootPlayer()" class="bg-indigo-600 px-4 py-2 rounded-lg font-bold">
-      Видео
-    </button>
+    <!-- WELCOME -->
+    <section id="screen-welcome" class="h-full overflow-auto p-4 md:p-8">
+      <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-6">
+          <h2 class="text-2xl font-black mb-2">Ученици</h2>
+          <p class="text-slate-300 mb-4">Въведи име + код и стартирай урока.</p>
 
-    <button onclick="openAddForm()" class="bg-emerald-600 px-4 py-2 rounded-lg font-bold">
-      + Въпрос
-    </button>
+          <div class="space-y-3">
+            <input id="stuName" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 font-bold"
+                   placeholder="Име (напр. Мария)">
 
-    <button onclick="exportJSON()" class="bg-amber-600 px-4 py-2 rounded-lg font-bold">
-      Експорт
-    </button>
+            <textarea id="stuCode" class="w-full h-28 bg-slate-800 border border-slate-700 rounded-xl p-3 font-mono text-xs"
+                      placeholder="Постави кода от учителя тук..."></textarea>
 
-    <button onclick="importJSON()" class="bg-sky-600 px-4 py-2 rounded-lg font-bold">
-      Импорт
-    </button>
-  </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <label class="bg-slate-800 border border-slate-700 rounded-xl p-3 flex items-center gap-2 cursor-pointer">
+                <input id="modeHome" type="radio" name="mode" checked>
+                <div>
+                  <div class="font-black">Домашно</div>
+                  <div class="text-xs text-slate-400">запазва резултат (локално)</div>
+                </div>
+              </label>
+
+              <label class="bg-slate-800 border border-slate-700 rounded-xl p-3 flex items-center gap-2 cursor-pointer">
+                <input id="modeSOP" type="radio" name="mode">
+                <div>
+                  <div class="font-black">СОП 🔊</div>
+                  <div class="text-xs text-slate-400">едър шрифт + четец</div>
+                </div>
+              </label>
+
+              <label class="bg-slate-800 border border-slate-700 rounded-xl p-3 flex items-center gap-2 cursor-pointer">
+                <input id="modeDiscuss" type="radio" name="mode">
+                <div>
+                  <div class="font-black">Обсъждане</div>
+                  <div class="text-xs text-slate-400">не пази резултат</div>
+                </div>
+              </label>
+            </div>
+
+            <button class="w-full bg-emerald-600 hover:bg-emerald-500 rounded-xl py-3 font-black"
+                    onclick="startStudentFromCode()">Старт</button>
+
+            <div class="text-xs text-slate-400">
+              Ако кодът е много дълъг: копирай/постави внимателно (най-добре от “Експорт” прозореца на учителя).
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-6">
+          <h2 class="text-2xl font-black mb-2">Учител</h2>
+          <p class="text-slate-300 mb-4">Създай урок, запази в библиотеката и генерирай код за учениците.</p>
+
+          <div class="space-y-3">
+            <button class="w-full bg-indigo-600 hover:bg-indigo-500 rounded-xl py-3 font-black"
+                    onclick="go('teacher')">Вход в библиотека</button>
+
+            <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4 text-sm text-slate-300">
+              ✅ Библиотеката е локална (в браузъра). По-късно ще я вържем към Firebase.
+            </div>
+
+            <button class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl py-3 font-bold"
+                    onclick="clearLocal()">
+              Нулирай локални данни (ако се обърка)
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TEACHER LIBRARY -->
+    <section id="screen-teacher" class="hidden h-full overflow-hidden">
+      <div class="h-full grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-0">
+        <!-- left: library -->
+        <div class="h-full bg-slate-950/40 border-r border-slate-800 overflow-hidden flex flex-col">
+          <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+            <div>
+              <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Учителска библиотека</div>
+              <div class="text-lg font-black">Уроци</div>
+            </div>
+            <button class="bg-emerald-600 hover:bg-emerald-500 px-3 py-2 rounded-lg font-black text-sm"
+                    onclick="newLesson()">+ Нов урок</button>
+          </div>
+
+          <div class="p-4 border-b border-slate-800">
+            <input id="libSearch" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm font-bold"
+                   placeholder="Търси по име..." oninput="renderLibrary()">
+          </div>
+
+          <div id="libList" class="flex-1 overflow-auto p-4 space-y-3"></div>
+
+          <div class="p-4 border-t border-slate-800 text-xs text-slate-400">
+            Уроците се пазят локално в този браузър.
+          </div>
+        </div>
+
+        <!-- right: editor + preview -->
+        <div class="h-full overflow-hidden flex flex-col">
+          <div class="p-4 border-b border-slate-800 flex flex-wrap items-center gap-2 justify-between bg-slate-900/40">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Редактор</span>
+              <span id="editBadge" class="px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 text-sm font-black">Няма избран урок</span>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <button class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-lg font-bold text-sm"
+                      onclick="openExportModal()">Експорт</button>
+              <button class="bg-sky-600 hover:bg-sky-500 px-3 py-2 rounded-lg font-bold text-sm"
+                      onclick="openImportModal()">Импорт</button>
+              <button class="bg-amber-600 hover:bg-amber-500 px-3 py-2 rounded-lg font-bold text-sm"
+                      onclick="openShareCode()">Генерирай код</button>
+              <button class="bg-emerald-600 hover:bg-emerald-500 px-3 py-2 rounded-lg font-black text-sm"
+                      onclick="saveLesson()">Запази</button>
+            </div>
+          </div>
+
+          <div class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-4 p-4">
+            <!-- video -->
+            <div class="bg-black rounded-2xl overflow-hidden relative">
+              <div id="tPlayer" class="w-full h-full"></div>
+              <div id="tHint" class="absolute top-3 left-3 bg-black/50 backdrop-blur px-3 py-2 rounded-xl text-xs text-slate-200">
+                Зареди видео (YouTube ID) и натисни Play.
+              </div>
+            </div>
+
+            <!-- questions -->
+            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden flex flex-col">
+              <div class="p-4 border-b border-slate-800 space-y-2">
+                <input id="tTitle" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 font-black"
+                       placeholder="Име на урок (напр. Българско възраждане)">
+                <div class="flex gap-2">
+                  <input id="tVid" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl p-3 font-bold"
+                         placeholder="YouTube ID (11 знака)">
+                  <button class="bg-indigo-600 hover:bg-indigo-500 px-4 rounded-xl font-black"
+                          onclick="bootTeacherPlayer()">Видео</button>
+                </div>
+
+                <div class="flex items-center justify-between">
+                  <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Въпроси</div>
+                  <div class="font-mono text-xs bg-slate-800 border border-slate-700 px-3 py-1 rounded" id="tClock">0:00</div>
+                </div>
+
+                <button class="w-full bg-emerald-600 hover:bg-emerald-500 rounded-xl py-2 font-black"
+                        onclick="openQForm()">+ Добави въпрос (на текущата секунда)</button>
+              </div>
+
+              <div id="tQList" class="flex-1 overflow-auto p-4 space-y-3"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STUDENT PLAYER -->
+    <section id="screen-student" class="hidden h-full overflow-hidden">
+      <div class="h-full grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 p-4">
+        <div class="bg-black rounded-2xl overflow-hidden relative">
+          <div id="sPlayer" class="w-full h-full"></div>
+          <div id="sMini" class="absolute top-3 left-3 bg-black/50 backdrop-blur px-3 py-2 rounded-xl text-xs text-slate-200">
+            Стартирай урока.
+          </div>
+        </div>
+
+        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden flex flex-col">
+          <div class="p-4 border-b border-slate-800">
+            <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Ученик</div>
+            <div class="text-xl font-black" id="sName">—</div>
+            <div class="text-sm text-slate-300 mt-1" id="sLesson">—</div>
+            <div class="mt-3 flex items-center justify-between">
+              <div class="font-mono text-xs bg-slate-800 border border-slate-700 px-3 py-1 rounded" id="sClock">0:00</div>
+              <div class="text-sm font-black">Точки: <span id="sScore" class="text-emerald-300">0</span></div>
+            </div>
+            <div class="mt-2 text-xs text-slate-400" id="sModeLabel">Режим: —</div>
+          </div>
+
+          <div class="flex-1 overflow-auto p-4">
+            <div class="text-slate-300 text-sm">
+              Видео + въпроси се показват автоматично. Ако браузърът блокира autoplay — натисни Play.
+            </div>
+          </div>
+
+          <div class="p-4 border-t border-slate-800">
+            <button class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl py-3 font-bold"
+                    onclick="go('welcome')">Изход</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINISH -->
+    <section id="screen-finish" class="hidden h-full overflow-auto p-6">
+      <div class="max-w-xl mx-auto bg-slate-900/70 border border-slate-800 rounded-3xl p-8 text-center">
+        <div class="text-5xl font-black mb-2">КРАЙ</div>
+        <div class="text-slate-300 mb-6" id="finInfo">—</div>
+
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-6">
+          <div class="text-slate-400 text-sm font-bold uppercase tracking-wider">Резултат</div>
+          <div class="text-6xl font-black mt-2"><span id="finScore">0</span> / <span id="finMax">0</span></div>
+        </div>
+
+        <div id="finSaved" class="text-sm text-slate-300 mb-6"></div>
+
+        <button class="w-full bg-emerald-600 hover:bg-emerald-500 rounded-xl py-3 font-black"
+                onclick="go('welcome')">Начало</button>
+      </div>
+    </section>
+
+  </main>
 </div>
 
-<!-- MAIN -->
-<div class="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-4 p-4 overflow-hidden">
-
-  <!-- VIDEO -->
-  <div class="bg-black rounded-2xl overflow-hidden relative">
-    <div id="player" class="w-full h-full"></div>
-  </div>
-
-  <!-- PANEL -->
-  <div class="bg-slate-900 border border-slate-700 rounded-2xl flex flex-col overflow-hidden">
-    <div class="p-4 border-b border-slate-700">
-      <div class="flex justify-between">
-        <h2 class="font-black text-lg">Въпроси</h2>
-        <div id="clock" class="font-mono text-xs bg-slate-800 px-3 py-1 rounded">0:00</div>
+<!-- MODALS -->
+<div id="modalHelp" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden">
+    <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+      <div class="font-black text-lg">Помощ (много кратко)</div>
+      <button class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700" onclick="closeHelp()">✕</button>
+    </div>
+    <div class="p-4 space-y-3 text-slate-200 text-sm">
+      <div class="font-bold">Учител:</div>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>В „Учител“ → „Нов урок“ → въведи име + YouTube ID → „Видео“.</li>
+        <li>Пусни видеото, изчакай точната секунда → „+ Добави въпрос“.</li>
+        <li>„Запази“ → урокът остава в библиотеката (локално).</li>
+        <li>„Генерирай код“ → копирай и дай на учениците.</li>
+      </ul>
+      <div class="font-bold mt-3">Ученици:</div>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>В „Ученици“ → име + код → режим → „Старт“.</li>
+        <li>Видео спира на въпроси. След отговор натискаш „Продължи“.</li>
+      </ul>
+      <div class="text-slate-400 text-xs mt-2">
+        Това е локална версия. Следващата стъпка е облак (Firebase) + реален учителски вход + статистики.
       </div>
     </div>
-
-    <div id="qList" class="flex-1 overflow-auto p-4 space-y-3"></div>
   </div>
 </div>
 
-<!-- QUESTION MODAL (PLAY MODE) -->
-<div id="qModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4">
-  <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-xl p-6 space-y-4">
-    <h3 id="playQText" class="text-xl font-black"></h3>
-    <div id="playOpts" class="space-y-2"></div>
-    <div id="playFeedback" class="font-bold"></div>
-    <button onclick="continueVideo()" class="bg-emerald-600 px-4 py-2 rounded-lg font-bold">
-      Продължи
-    </button>
-  </div>
-</div>
-
-<!-- EDITOR MODAL -->
-<div id="editModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4">
-  <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-xl p-6 space-y-4">
-    <h3 class="font-black text-xl">Нов въпрос</h3>
-
-    <input id="fTime" type="number" placeholder="Секунда"
-      class="w-full bg-slate-800 border border-slate-700 rounded p-2">
-
-    <input id="fText" placeholder="Текст на въпрос"
-      class="w-full bg-slate-800 border border-slate-700 rounded p-2">
-
-    <div id="fOpts" class="space-y-2"></div>
-
-    <select id="fCorrect" class="w-full bg-slate-800 border border-slate-700 rounded p-2">
-      <option value="0">Верният е отговор 1</option>
-      <option value="1">Верният е отговор 2</option>
-      <option value="2">Верният е отговор 3</option>
-      <option value="3">Верният е отговор 4</option>
-    </select>
-
-    <div class="flex gap-2">
-      <button onclick="saveQuestion()" class="bg-emerald-600 px-4 py-2 rounded font-bold">Запази</button>loadLocal();
-
-      <button onclick="closeEdit()" class="bg-slate-700 px-4 py-2 rounded">Отказ</button>loadLocal();
-
-    </div>
-  </div>
-</div>
-<!-- IMPORT/EXPORT MODAL -->
-<div id="ieModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4">
-  <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl overflow-hidden">
-    <div class="p-4 border-b border-slate-700 flex items-center justify-between">
-      <div class="font-black text-lg" id="ieTitle">Експорт / Импорт</div>
-      <button onclick="closeIE()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700">✕</button>
+<!-- Q FORM -->
+<div id="modalQ" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden">
+    <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+      <div class="font-black text-lg" id="qFormTitle">Въпрос</div>
+      <button class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700" onclick="closeQForm()">✕</button>
     </div>
     <div class="p-4 space-y-3">
-      <p class="text-slate-300 text-sm">
-        Постави кода тук. Това е по-надеждно от prompt().
-      </p>
-      <textarea id="ieText" class="w-full h-64 bg-slate-800 border border-slate-700 rounded-xl p-3 font-mono text-xs text-slate-100"
-        placeholder="Постави JSON тук..."></textarea>
-      <div id="ieErr" class="text-rose-300 text-sm font-bold"></div>
-      <div class="flex gap-2 flex-wrap">
-        <button onclick="doImport()" class="bg-sky-600 hover:bg-sky-500 px-4 py-2 rounded-lg font-bold">
-          Импорт
-        </button>
-        <button onclick="copyIE()" class="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded-lg font-bold">
-          Копирай
-        </button>
-        <button onclick="closeIE()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg">
-          Затвори
-        </button>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <input id="qTime" type="number" class="bg-slate-800 border border-slate-700 rounded-xl p-3 font-bold" placeholder="Секунда">
+        <select id="qCorrect" class="bg-slate-800 border border-slate-700 rounded-xl p-3 font-bold">
+          <option value="0">Верният е Отговор 1</option>
+          <option value="1">Верният е Отговор 2</option>
+          <option value="2">Верният е Отговор 3</option>
+          <option value="3">Верният е Отговор 4</option>
+        </select>
       </div>
+
+      <input id="qText" class="bg-slate-800 border border-slate-700 rounded-xl p-3 font-black" placeholder="Текст на въпроса">
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <input id="qO0" class="bg-slate-800 border border-slate-700 rounded-xl p-3 font-bold" placeholder="Отговор 1">
+        <input id="qO1" class="bg-slate-800 border border-slate-700 rounded-xl p-3 font-bold" placeholder="Отговор 2">
+        <input id="qO2" class="bg-slate-800 border border-slate-700 rounded-xl p-3 font-bold" placeholder="Отговор 3">
+        <input id="qO3" class="bg-slate-800 border border-slate-700 rounded-xl p-3 font-bold" placeholder="Отговор 4">
+      </div>
+
+      <div id="qErr" class="text-rose-300 font-bold text-sm"></div>
+
+      <div class="flex gap-2 flex-wrap">
+        <button class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-xl font-black" onclick="saveQForm()">Запази</button>
+        <button class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 rounded-xl font-bold" onclick="closeQForm()">Отказ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE CODE -->
+<div id="modalShare" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden">
+    <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+      <div class="font-black text-lg">Код за ученици</div>
+      <button class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700" onclick="closeShare()">✕</button>
+    </div>
+    <div class="p-4 space-y-3">
+      <div class="text-slate-300 text-sm">
+        Копирай и изпрати този код на учениците (във Viber/Teams/имейл).
+      </div>
+      <textarea id="shareText" class="w-full h-48 bg-slate-800 border border-slate-700 rounded-xl p-3 font-mono text-xs"></textarea>
+      <div id="shareInfo" class="text-slate-400 text-xs"></div>
+      <div class="flex gap-2 flex-wrap">
+        <button class="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded-xl font-black" onclick="copyShare()">Копирай</button>
+        <button class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 rounded-xl font-bold" onclick="closeShare()">Затвори</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT/EXPORT -->
+<div id="modalIE" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden">
+    <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+      <div class="font-black text-lg" id="ieTitle">Експорт/Импорт</div>
+      <button class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700" onclick="closeIE()">✕</button>
+    </div>
+    <div class="p-4 space-y-3">
+      <textarea id="ieText" class="w-full h-56 bg-slate-800 border border-slate-700 rounded-xl p-3 font-mono text-xs"
+                placeholder="Постави JSON тук..."></textarea>
+      <div id="ieErr" class="text-rose-300 font-bold text-sm"></div>
+      <div class="flex gap-2 flex-wrap">
+        <button class="bg-sky-600 hover:bg-sky-500 px-4 py-2 rounded-xl font-black" onclick="doIEImport()">Импорт</button>
+        <button class="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded-xl font-black" onclick="copyIE()">Копирай</button>
+        <button class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 rounded-xl font-bold" onclick="closeIE()">Затвори</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STUDENT QUESTION MODAL -->
+<div id="modalSQ" class="hidden fixed inset-0 bg-black/75 flex items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden">
+    <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+      <div>
+        <div id="sqMeta" class="text-xs text-slate-400 font-bold uppercase tracking-wider">Въпрос</div>
+        <div id="sqText" class="text-xl font-black">—</div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btnSpeak" class="hidden px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-black text-sm" onclick="speakSQ()">🔊</button>
+        <button class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700" onclick="closeSQ()">✕</button>
+      </div>
+    </div>
+    <div id="sqOpts" class="p-4 space-y-2"></div>
+    <div class="p-4 border-t border-slate-800 flex items-center justify-between gap-3">
+      <div id="sqFeed" class="font-bold text-slate-200"></div>
+      <button id="btnSQContinue" class="hidden bg-emerald-600 hover:bg-emerald-500 px-5 py-3 rounded-xl font-black" onclick="continueStudent()">Продължи</button>
     </div>
   </div>
 </div>
 
 <script src="https://www.youtube.com/iframe_api"></script>
-
 <script>
-let QUIZ = { videoId:"dQw4w9WgXcQ", questions:[] };
-let player, ytReady=false, timer=null, asked=new Set(), editIndex=null;
+/* =========================
+   Local storage keys
+========================= */
+const LS_LIB = "videoquiz_library_v1";
+const LS_RESULTS = "videoquiz_results_v1";
 
-function onYouTubeIframeAPIReady(){ ytReady=true; }
+/* =========================
+   Global state
+========================= */
+let ytReady = false;
 
-function bootPlayer(){
- if(!ytReady) return alert("YT още зарежда");
- QUIZ.videoId = ytId.value.trim();
- asked=new Set();
- if(timer) clearInterval(timer);
- document.getElementById("player").innerHTML="";
- player = new YT.Player("player",{
-  videoId:QUIZ.videoId,
-  events:{ onReady:e=>{ timer=setInterval(tick,300); } }
- });
+// Teacher
+let tPlayer = null;
+let tTick = null;
+let currentLessonId = null;   // selected in library
+let workingLesson = null;     // {id,title,videoId,questions:[{time,text,options[4],correctIndex}]}
+let editingQIndex = null;
+
+// Student
+let sPlayer = null;
+let sTick = null;
+let sAsked = new Set();
+let sActiveQ = null;
+let sScore = 0;
+let sMax = 0;
+let sMode = "home"; // home | sop | discuss
+let sStudentName = "";
+let sLessonTitle = "";
+
+/* =========================
+   YouTube API
+========================= */
+function onYouTubeIframeAPIReady(){ ytReady = true; }
+
+/* =========================
+   Screen nav
+========================= */
+function go(name){
+  document.querySelectorAll("section[id^='screen-']").forEach(s=>s.classList.add("hidden"));
+  document.getElementById("screen-"+name).classList.remove("hidden");
+  // cleanup student/teacher tick
+  if(name !== "student") stopStudentTick();
+  if(name !== "teacher") stopTeacherTick();
+  if(name === "teacher") renderLibrary();
 }
 
-function tick(){
- if(!player) return;
- const t = player.getCurrentTime();
- clock.innerText = fmt(t);
- const q = QUIZ.questions.find(q=>!asked.has(q.time)&&t>=q.time);
- if(q){ asked.add(q.time); ask(q); }
+function openHelp(){ document.getElementById("modalHelp").classList.remove("hidden"); }
+function closeHelp(){ document.getElementById("modalHelp").classList.add("hidden"); }
+
+/* =========================
+   Utils
+========================= */
+function fmt(sec){
+  sec = Math.max(0, Math.floor(sec || 0));
+  const m = Math.floor(sec/60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2,"0")}`;
+}
+function toast(msg){
+  // minimal: use alert-like but nicer
+  // for simplicity and stability:
+  alert(msg);
+}
+function b64EncodeUnicode(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function b64DecodeUnicode(str){
+  return decodeURIComponent(escape(atob(str)));
 }
 
-function fmt(s){ s=Math.floor(s||0); return Math.floor(s/60)+":"+(s%60).toString().padStart(2,"0"); }
-
-function ask(q){
- player.pauseVideo();
- playQText.innerText=q.text;
- playOpts.innerHTML="";
- playFeedback.innerText="";
- q.options.forEach((o,i)=>{
-  const b=document.createElement("button");
-  b.className="w-full bg-slate-800 p-3 rounded";
-  b.innerText=o;
-  b.onclick=()=>answer(i,q.correctIndex);
-  playOpts.appendChild(b);
- });
- qModal.classList.remove("hidden");
+/* =========================
+   Library CRUD (LocalStorage)
+========================= */
+function loadLibrary(){
+  try { return JSON.parse(localStorage.getItem(LS_LIB) || "[]"); }
+  catch { return []; }
+}
+function saveLibrary(list){
+  localStorage.setItem(LS_LIB, JSON.stringify(list));
+}
+function upsertLesson(lesson){
+  const list = loadLibrary();
+  const idx = list.findIndex(x=>x.id===lesson.id);
+  if(idx>=0) list[idx] = lesson;
+  else list.push(lesson);
+  saveLibrary(list);
+}
+function deleteLesson(id){
+  const list = loadLibrary().filter(x=>x.id!==id);
+  saveLibrary(list);
 }
 
-function answer(i,c){
- playFeedback.innerText = i===c ? "✅ Вярно" : "❌ Грешно";
+function clearLocal(){
+  if(!confirm("Сигурна ли си? Това ще изтрие локалната библиотека и локалните резултати.")) return;
+  localStorage.removeItem(LS_LIB);
+  localStorage.removeItem(LS_RESULTS);
+  toast("Нулирано.");
 }
 
-function continueVideo(){
- qModal.classList.add("hidden");
- player.playVideo();
+/* =========================
+   Teacher – Library UI
+========================= */
+function renderLibrary(){
+  const list = loadLibrary();
+  const q = (document.getElementById("libSearch").value || "").toLowerCase().trim();
+  const filtered = q ? list.filter(x => (x.title||"").toLowerCase().includes(q)) : list;
+
+  const box = document.getElementById("libList");
+  if(filtered.length === 0){
+    box.innerHTML = `<div class="text-slate-400 text-sm">Няма уроци. Натисни „Нов урок“.</div>`;
+    return;
+  }
+
+  box.innerHTML = filtered
+    .sort((a,b)=>(a.title||"").localeCompare(b.title||""))
+    .map(l => `
+      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 space-y-3">
+        <div class="font-black text-lg">${escapeHtml(l.title || "Без име")}</div>
+        <div class="text-xs text-slate-400">Видео: <span class="font-mono">${escapeHtml(l.videoId||"—")}</span> • Въпроси: <b>${(l.questions||[]).length}</b></div>
+
+        <div class="flex gap-2 flex-wrap">
+          <button class="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded-xl font-bold text-sm" onclick="selectLesson('${l.id}')">Редакция</button>
+          <button class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-xl font-bold text-sm" onclick="previewLesson('${l.id}')">Преглед</button>
+          <button class="bg-amber-600 hover:bg-amber-500 px-3 py-2 rounded-xl font-black text-sm" onclick="shareLesson('${l.id}')">Код</button>
+          <button class="bg-rose-600 hover:bg-rose-500 px-3 py-2 rounded-xl font-bold text-sm" onclick="removeLesson('${l.id}')">Изтрий</button>
+        </div>
+      </div>
+    `).join("");
 }
 
-function renderList(){
- qList.innerHTML = QUIZ.questions
- .sort((a,b)=>a.time-b.time)
- .map((q,i)=>`
- <div class="bg-slate-800 p-3 rounded space-y-2">
-   <div class="font-bold">${fmt(q.time)} — ${q.text}</div>
-   <div class="flex gap-2">
-     <button onclick="editQ(${i})" class="bg-indigo-600 px-2 py-1 rounded text-xs">Редакция</button>
-     <button onclick="delQ(${i})" class="bg-rose-600 px-2 py-1 rounded text-xs">Изтрий</button>
-   </div>
- </div>`).join("");
+function newLesson(){
+  const id = "L" + Date.now();
+  workingLesson = { id, title: "Нов урок", videoId: "dQw4w9WgXcQ", questions: [] };
+  currentLessonId = id;
+  applyLessonToEditor();
+  document.getElementById("editBadge").innerText = "Редакция: Нов урок";
+  // stop old teacher player, so we recreate clean
+  stopTeacherTick();
+  document.getElementById("tPlayer").innerHTML = "";
+  document.getElementById("tHint").innerText = "Въведи YouTube ID и натисни „Видео“.";
+  renderTeacherQuestions();
 }
 
-function openAddForm(){
- editIndex=null;
- fTime.value = player ? Math.floor(player.getCurrentTime()) : 0;
- fText.value="";
- fOpts.innerHTML="";
- for(let i=0;i<4;i++){
-  fOpts.innerHTML += `<input id="opt${i}" placeholder="Отговор ${i+1}"
-   class="w-full bg-slate-800 border border-slate-700 rounded p-2">`;
- }
- editModal.classList.remove("hidden");
+function selectLesson(id){
+  const lesson = loadLibrary().find(x=>x.id===id);
+  if(!lesson) return;
+  workingLesson = JSON.parse(JSON.stringify(lesson));
+  currentLessonId = id;
+  applyLessonToEditor();
+  document.getElementById("editBadge").innerText = "Редакция: " + (workingLesson.title || "Без име");
+  stopTeacherTick();
+  document.getElementById("tPlayer").innerHTML = "";
+  document.getElementById("tHint").innerText = "Натисни „Видео“ за да заредиш плеъра.";
+  renderTeacherQuestions();
 }
 
-function saveQuestion(){
- const q={
-  time:Number(fTime.value),
-  text:fText.value,
-  options:[opt0.value,opt1.value,opt2.value,opt3.value],
-  correctIndex:Number(fCorrect.value)
- };
- if(editIndex===null) QUIZ.questions.push(q);
- else QUIZ.questions[editIndex]=q;
- closeEdit();
- renderList();
+function previewLesson(id){
+  const lesson = loadLibrary().find(x=>x.id===id);
+  if(!lesson) return;
+  // Start student in "discuss" mode for preview, without saving
+  startStudent(lesson, "discuss", "Учител (преглед)");
 }
 
-function closeEdit(){ editModal.classList.add("hidden"); }
-
-function editQ(i){
- editIndex=i;
- const q=QUIZ.questions[i];
- fTime.value=q.time;
- fText.value=q.text;
- fOpts.innerHTML="";
- q.options.forEach((o,i)=>{ fOpts.innerHTML += `<input id="opt${i}" value="${o}" class="w-full bg-slate-800 border p-2 rounded">`;});
- fCorrect.value=q.correctIndex;
- editModal.classList.remove("hidden");
+function shareLesson(id){
+  const lesson = loadLibrary().find(x=>x.id===id);
+  if(!lesson) return;
+  shareLessonNow(lesson);
 }
 
-function delQ(i){ QUIZ.questions.splice(i,1); renderList(); }
+function removeLesson(id){
+  if(!confirm("Изтриване на урока?")) return;
+  deleteLesson(id);
+  if(currentLessonId === id){
+    currentLessonId = null;
+    workingLesson = null;
+    document.getElementById("editBadge").innerText = "Няма избран урок";
+    document.getElementById("tTitle").value = "";
+    document.getElementById("tVid").value = "";
+    document.getElementById("tQList").innerHTML = `<div class="text-slate-400 text-sm">Избери урок или създай нов.</div>`;
+    stopTeacherTick();
+    document.getElementById("tPlayer").innerHTML = "";
+  }
+  renderLibrary();
+}
 
-// --- Import/Export UI (replaces prompt-based) ---
-function openIE(title, text){
-  document.getElementById("ieTitle").innerText = title;
-  document.getElementById("ieText").value = text || "";
+function applyLessonToEditor(){
+  document.getElementById("tTitle").value = workingLesson.title || "";
+  document.getElementById("tVid").value = workingLesson.videoId || "";
+}
+
+function saveLesson(){
+  if(!workingLesson){
+    toast("Няма избран урок. Натисни „Нов урок“.");
+    return;
+  }
+  // pull from UI
+  workingLesson.title = (document.getElementById("tTitle").value || "").trim() || "Без име";
+  workingLesson.videoId = (document.getElementById("tVid").value || "").trim();
+  workingLesson.questions = (workingLesson.questions || []).sort((a,b)=>a.time-b.time);
+
+  if(!workingLesson.videoId || workingLesson.videoId.length !== 11){
+    toast("YouTube ID трябва да е 11 знака.");
+    return;
+  }
+
+  upsertLesson(workingLesson);
+  renderLibrary();
+  document.getElementById("editBadge").innerText = "Редакция: " + workingLesson.title;
+  toast("Запазено локално ✅");
+}
+
+/* =========================
+   Teacher – Player & Questions
+========================= */
+function bootTeacherPlayer(){
+  if(!ytReady){ toast("YouTube API още зарежда. Изчакай 1-2 сек."); return; }
+  if(!workingLesson){
+    toast("Избери урок или натисни „Нов урок“.");
+    return;
+  }
+  // sync
+  workingLesson.title = (document.getElementById("tTitle").value || "").trim() || "Без име";
+  workingLesson.videoId = (document.getElementById("tVid").value || "").trim();
+
+  if(!workingLesson.videoId || workingLesson.videoId.length !== 11){
+    toast("Въведи YouTube ID (11 знака).");
+    return;
+  }
+
+  stopTeacherTick();
+  document.getElementById("tPlayer").innerHTML = "";
+
+  tPlayer = new YT.Player("tPlayer",{
+    videoId: workingLesson.videoId,
+    width:"100%", height:"100%",
+    playerVars:{ rel:0, modestbranding:1 },
+    events:{
+      onReady: e => {
+        document.getElementById("tHint").innerText = "Пусни видеото. На точната секунда натисни „+ Добави въпрос“.";
+        startTeacherTick();
+      }
+    }
+  });
+}
+
+function startTeacherTick(){
+  stopTeacherTick();
+  tTick = setInterval(()=>{
+    if(!tPlayer || typeof tPlayer.getCurrentTime !== "function") return;
+    document.getElementById("tClock").innerText = fmt(tPlayer.getCurrentTime());
+  }, 300);
+}
+function stopTeacherTick(){
+  if(tTick) clearInterval(tTick);
+  tTick = null;
+}
+
+function renderTeacherQuestions(){
+  const box = document.getElementById("tQList");
+  if(!workingLesson){
+    box.innerHTML = `<div class="text-slate-400 text-sm">Избери урок или създай нов.</div>`;
+    return;
+  }
+  const qs = (workingLesson.questions || []).slice().sort((a,b)=>a.time-b.time);
+  if(qs.length === 0){
+    box.innerHTML = `<div class="text-slate-400 text-sm">Няма въпроси. Добави с бутона „+ Добави въпрос“.</div>`;
+    return;
+  }
+  box.innerHTML = qs.map((q, idx)=>`
+    <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 space-y-2">
+      <div class="flex items-center justify-between gap-2">
+        <div class="font-black">${fmt(q.time)} — ${escapeHtml(q.text)}</div>
+        <button class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold" onclick="seekTeacher(${q.time})">Скок</button>
+      </div>
+      <div class="text-xs text-slate-400">Верен: <b>${Number(q.correctIndex)+1}</b></div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+        ${q.options.map((o,i)=>`<div class="bg-slate-800 border border-slate-700 rounded-xl p-2 ${i===q.correctIndex?'text-emerald-300':''}">
+          ${i+1}) ${escapeHtml(o)}
+        </div>`).join("")}
+      </div>
+      <div class="flex gap-2 flex-wrap pt-2">
+        <button class="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded-xl font-bold text-sm" onclick="editTeacherQ(${idx})">Редакция</button>
+        <button class="bg-rose-600 hover:bg-rose-500 px-3 py-2 rounded-xl font-bold text-sm" onclick="delTeacherQ(${idx})">Изтрий</button>
+        <button class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-xl font-bold text-sm" onclick="nudgeTeacherQ(${idx}, -1)">-1s</button>
+        <button class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-xl font-bold text-sm" onclick="nudgeTeacherQ(${idx}, +1)">+1s</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function seekTeacher(sec){
+  if(!tPlayer) return;
+  tPlayer.seekTo(sec, true);
+  tPlayer.playVideo();
+}
+
+function openQForm(){
+  if(!workingLesson){
+    toast("Първо избери/създай урок.");
+    return;
+  }
+  editingQIndex = null;
+  const t = tPlayer && typeof tPlayer.getCurrentTime==="function" ? Math.floor(tPlayer.getCurrentTime()) : 0;
+  document.getElementById("qFormTitle").innerText = "Нов въпрос";
+  document.getElementById("qTime").value = t;
+  document.getElementById("qText").value = "";
+  document.getElementById("qO0").value = "";
+  document.getElementById("qO1").value = "";
+  document.getElementById("qO2").value = "";
+  document.getElementById("qO3").value = "";
+  document.getElementById("qCorrect").value = "0";
+  document.getElementById("qErr").innerText = "";
+  document.getElementById("modalQ").classList.remove("hidden");
+  if(tPlayer) tPlayer.pauseVideo();
+}
+function closeQForm(){
+  document.getElementById("modalQ").classList.add("hidden");
+}
+function saveQForm(){
+  const err = document.getElementById("qErr");
+  err.innerText = "";
+
+  const time = Number(document.getElementById("qTime").value);
+  const text = (document.getElementById("qText").value || "").trim();
+  const options = [
+    (document.getElementById("qO0").value || "").trim(),
+    (document.getElementById("qO1").value || "").trim(),
+    (document.getElementById("qO2").value || "").trim(),
+    (document.getElementById("qO3").value || "").trim(),
+  ];
+  const correctIndex = Number(document.getElementById("qCorrect").value);
+
+  if(!Number.isFinite(time) || time < 0){ err.innerText = "Невалидна секунда."; return; }
+  if(!text){ err.innerText = "Напиши текст на въпроса."; return; }
+  if(options.some(o=>!o)){ err.innerText = "Попълни и 4-те отговора."; return; }
+  if(!(correctIndex>=0 && correctIndex<=3)){ err.innerText = "Избери верен отговор."; return; }
+
+  const q = { time, text, options, correctIndex };
+
+  if(editingQIndex === null){
+    workingLesson.questions.push(q);
+  }else{
+    workingLesson.questions[editingQIndex] = q;
+  }
+  workingLesson.questions.sort((a,b)=>a.time-b.time);
+  renderTeacherQuestions();
+  closeQForm();
+}
+
+function editTeacherQ(index){
+  const qs = (workingLesson.questions||[]).slice().sort((a,b)=>a.time-b.time);
+  const q = qs[index];
+  if(!q) return;
+
+  // Map back to actual index in workingLesson.questions (since we sorted view)
+  const realIdx = workingLesson.questions.findIndex(x => x.time===q.time && x.text===q.text);
+  editingQIndex = realIdx >= 0 ? realIdx : index;
+
+  document.getElementById("qFormTitle").innerText = "Редакция на въпрос";
+  document.getElementById("qTime").value = q.time;
+  document.getElementById("qText").value = q.text;
+  document.getElementById("qO0").value = q.options[0] || "";
+  document.getElementById("qO1").value = q.options[1] || "";
+  document.getElementById("qO2").value = q.options[2] || "";
+  document.getElementById("qO3").value = q.options[3] || "";
+  document.getElementById("qCorrect").value = String(q.correctIndex || 0);
+  document.getElementById("qErr").innerText = "";
+  document.getElementById("modalQ").classList.remove("hidden");
+  if(tPlayer) tPlayer.pauseVideo();
+}
+
+function delTeacherQ(index){
+  const qs = (workingLesson.questions||[]).slice().sort((a,b)=>a.time-b.time);
+  const q = qs[index];
+  if(!q) return;
+  if(!confirm("Изтриване на въпроса?")) return;
+  // remove by match
+  const realIdx = workingLesson.questions.findIndex(x => x.time===q.time && x.text===q.text);
+  if(realIdx>=0) workingLesson.questions.splice(realIdx,1);
+  else workingLesson.questions.splice(index,1);
+  renderTeacherQuestions();
+}
+
+function nudgeTeacherQ(index, delta){
+  const qs = (workingLesson.questions||[]).slice().sort((a,b)=>a.time-b.time);
+  const q = qs[index];
+  if(!q) return;
+  const realIdx = workingLesson.questions.findIndex(x => x.time===q.time && x.text===q.text);
+  const idx = realIdx>=0 ? realIdx : index;
+  workingLesson.questions[idx].time = Math.max(0, (workingLesson.questions[idx].time||0) + delta);
+  workingLesson.questions.sort((a,b)=>a.time-b.time);
+  renderTeacherQuestions();
+}
+
+/* =========================
+   Share code (Student code)
+========================= */
+function openShareCode(){
+  if(!workingLesson){
+    toast("Избери/създай урок и натисни Запази.");
+    return;
+  }
+  // ensure latest UI saved to object
+  workingLesson.title = (document.getElementById("tTitle").value || "").trim() || "Без име";
+  workingLesson.videoId = (document.getElementById("tVid").value || "").trim();
+  workingLesson.questions = (workingLesson.questions||[]).sort((a,b)=>a.time-b.time);
+
+  if(!workingLesson.videoId || workingLesson.videoId.length !== 11){
+    toast("Първо въведи YouTube ID (11 знака).");
+    return;
+  }
+
+  shareLessonNow(workingLesson);
+}
+
+function shareLessonNow(lesson){
+  const payload = {
+    v: lesson.videoId,
+    title: lesson.title || "Без име",
+    q: (lesson.questions||[]).sort((a,b)=>a.time-b.time)
+  };
+  const code = b64EncodeUnicode(JSON.stringify(payload));
+
+  document.getElementById("shareText").value = code;
+  document.getElementById("shareInfo").innerText = `Урок: "${lesson.title}" • Въпроси: ${(lesson.questions||[]).length}`;
+  document.getElementById("modalShare").classList.remove("hidden");
+}
+
+function closeShare(){ document.getElementById("modalShare").classList.add("hidden"); }
+function copyShare(){
+  const ta = document.getElementById("shareText");
+  ta.select();
+  document.execCommand("copy");
+  document.getElementById("shareInfo").innerText = "✅ Копирано! Изпрати го на учениците.";
+}
+
+/* =========================
+   Import/Export (JSON) for teacher
+========================= */
+function openExportModal(){
+  if(!workingLesson){ toast("Избери/създай урок."); return; }
+  const clean = JSON.stringify({
+    id: workingLesson.id,
+    title: (document.getElementById("tTitle").value || "").trim() || workingLesson.title || "Без име",
+    videoId: (document.getElementById("tVid").value || "").trim() || workingLesson.videoId,
+    questions: (workingLesson.questions||[]).sort((a,b)=>a.time-b.time)
+  });
+  document.getElementById("ieTitle").innerText = "Експорт (JSON)";
+  document.getElementById("ieText").value = clean;
   document.getElementById("ieErr").innerText = "";
-  document.getElementById("ieModal").classList.remove("hidden");
+  document.getElementById("modalIE").classList.remove("hidden");
 }
-function closeIE(){
-  document.getElementById("ieModal").classList.add("hidden");
+function openImportModal(){
+  document.getElementById("ieTitle").innerText = "Импорт (JSON)";
+  document.getElementById("ieText").value = "";
+  document.getElementById("ieErr").innerText = "";
+  document.getElementById("modalIE").classList.remove("hidden");
 }
+function closeIE(){ document.getElementById("modalIE").classList.add("hidden"); }
 function copyIE(){
   const ta = document.getElementById("ieText");
   ta.select();
   document.execCommand("copy");
   document.getElementById("ieErr").innerText = "✅ Копирано!";
 }
-
-function exportJSON(){
-  // Подреждаме въпросите по време, за да е чисто
-  const clean = {
-    videoId: QUIZ.videoId,
-    questions: [...QUIZ.questions].sort((a,b)=>a.time-b.time)
-  };
-  openIE("Експорт (копирай кода)", JSON.stringify(clean));
-}
-
-function importJSON(){
-  openIE("Импорт (постави кода и натисни Импорт)", "");
-}
-
-function doImport(){
-  const raw = document.getElementById("ieText").value.trim();
+function doIEImport(){
+  const raw = (document.getElementById("ieText").value || "").trim();
   const err = document.getElementById("ieErr");
   err.innerText = "";
-
-  if(!raw){
-    err.innerText = "⚠️ Постави код първо.";
-    return;
-  }
-function saveLocal(){
-  localStorage.setItem("videoquiz_quiz", JSON.stringify(QUIZ));
-}
-function loadLocal(){
-  const t = localStorage.getItem("videoquiz_quiz");
-  if(!t) return;
-  try{
-    QUIZ = JSON.parse(t);
-    const yt = document.getElementById("ytId");
-    if(yt) yt.value = QUIZ.videoId;
-    renderList();
-  }catch(e){}
-}
-
+  if(!raw){ err.innerText = "Постави JSON."; return; }
   try{
     const obj = JSON.parse(raw);
+    if(!obj.videoId || String(obj.videoId).length !== 11) throw new Error("Липсва/грешен videoId.");
+    if(!Array.isArray(obj.questions)) throw new Error("Липсва questions (масив).");
 
-    // Валидиране за лаик: да не импортираш нещо грешно
-    if(!obj || typeof obj !== "object") throw new Error("Кодът не е обект.");
-    if(!obj.videoId || typeof obj.videoId !== "string") throw new Error("Липсва videoId.");
-    if(!Array.isArray(obj.questions)) throw new Error("Липсва масив questions.");
+    const lesson = {
+      id: obj.id || ("L"+Date.now()),
+      title: obj.title || "Импортиран урок",
+      videoId: obj.videoId,
+      questions: obj.questions.map(q=>({
+        time: Number(q.time||0),
+        text: String(q.text||""),
+        options: Array.isArray(q.options) ? q.options.slice(0,4) : ["","","",""],
+        correctIndex: Number(q.correctIndex||0)
+      }))
+    };
 
-    // Мини нормализация
-    obj.questions.forEach((q,i)=>{
-      if(typeof q.time !== "number") throw new Error("Въпрос #" + (i+1) + " няма time (число).");
-      if(typeof q.text !== "string") throw new Error("Въпрос #" + (i+1) + " няма text.");
-      if(!Array.isArray(q.options) || q.options.length !== 4) throw new Error("Въпрос #" + (i+1) + " трябва да има 4 опции.");
-      if(typeof q.correctIndex !== "number") throw new Error("Въпрос #" + (i+1) + " няма correctIndex (число).");
-    });
-
-    QUIZ = obj;
-    // ако има input поле за видео id, обновяваме го
-    const yt = document.getElementById("ytId");
-    if(yt) yt.value = QUIZ.videoId;
-
-    renderList();
-    err.innerText = "✅ Импортът е успешен!";
-  } catch(e){
-    err.innerText = "❌ Грешка в кода: " + (e.message || e);
+    upsertLesson(lesson);
+    selectLesson(lesson.id);
+    renderLibrary();
+    err.innerText = "✅ Импортирано!";
+  }catch(e){
+    err.innerText = "❌ " + (e.message || e);
   }
 }
 
-</script>
+/* =========================
+   Student mode – start from code
+========================= */
+function startStudentFromCode(){
+  const name = (document.getElementById("stuName").value || "").trim() || "Анонимен";
+  const code = (document.getElementById("stuCode").value || "").trim();
+  if(!code){ toast("Постави код."); return; }
 
+  let obj = null;
+  try{
+    obj = JSON.parse(b64DecodeUnicode(code));
+  }catch{
+    toast("Кодът не е валиден (не може да се разчете).");
+    return;
+  }
+  if(!obj || !obj.v || String(obj.v).length !== 11 || !Array.isArray(obj.q)){
+    toast("Кодът е повреден (липсват данни).");
+    return;
+  }
+
+  // mode
+  const mode = document.getElementById("modeSOP").checked ? "sop"
+            : document.getElementById("modeDiscuss").checked ? "discuss"
+            : "home";
+
+  const lesson = {
+    title: obj.title || "Урок",
+    videoId: obj.v,
+    questions: obj.q
+  };
+
+  startStudent(lesson, mode, name);
+}
+
+function startStudent(lesson, mode, name){
+  if(!ytReady){ toast("YouTube API още зарежда. Изчакай 1-2 сек."); return; }
+
+  sMode = mode;
+  sStudentName = name;
+  sLessonTitle = lesson.title || "Урок";
+
+  // score calc
+  sScore = 0;
+  sAsked = new Set();
+  sActiveQ = null;
+
+  // max points (по 1 на въпрос засега)
+  sMax = (lesson.questions||[]).length;
+
+  // UI
+  document.getElementById("sName").innerText = sStudentName;
+  document.getElementById("sLesson").innerText = sLessonTitle;
+  document.getElementById("sScore").innerText = "0";
+  document.getElementById("sModeLabel").innerText =
+    "Режим: " + (mode==="home" ? "Домашно" : mode==="sop" ? "СОП" : "Обсъждане");
+
+  // SOP big text mode (question modal)
+  const btnSpeak = document.getElementById("btnSpeak");
+  btnSpeak.classList.toggle("hidden", mode!=="sop");
+
+  // create player
+  stopStudentTick();
+  document.getElementById("sPlayer").innerHTML = "";
+  go("student");
+
+  sPlayer = new YT.Player("sPlayer", {
+    videoId: lesson.videoId,
+    width:"100%", height:"100%",
+    playerVars:{ rel:0, modestbranding:1 },
+    events:{
+      onReady: e => {
+        document.getElementById("sMini").innerText = "Пусни Play (ако не тръгне автоматично).";
+        startStudentTick(lesson);
+      },
+      onStateChange: e => {
+        // when ended
+        if(e.data === 0){
+          finishStudent();
+        }
+      }
+    }
+  });
+}
+
+function startStudentTick(lesson){
+  stopStudentTick();
+  sTick = setInterval(()=>{
+    if(!sPlayer || typeof sPlayer.getCurrentTime !== "function") return;
+    const t = sPlayer.getCurrentTime();
+    document.getElementById("sClock").innerText = fmt(t);
+
+    const qs = (lesson.questions||[]).slice().sort((a,b)=>a.time-b.time);
+    const next = qs.find(q => !sAsked.has(q.time) && t >= q.time);
+    if(next){
+      sAsked.add(next.time);
+      showStudentQuestion(next);
+    }
+  }, 300);
+}
+function stopStudentTick(){
+  if(sTick) clearInterval(sTick);
+  sTick = null;
+}
+
+function showStudentQuestion(q){
+  sActiveQ = q;
+  if(sPlayer) sPlayer.pauseVideo();
+
+  document.getElementById("sqMeta").innerText = `Въпрос @ ${fmt(q.time)}`;
+  document.getElementById("sqText").innerText = q.text;
+  document.getElementById("sqFeed").innerText = "Избери отговор.";
+  document.getElementById("btnSQContinue").classList.add("hidden");
+
+  // SOP style: larger question
+  const sqText = document.getElementById("sqText");
+  sqText.className = (sMode==="sop")
+    ? "text-3xl font-black leading-snug"
+    : "text-xl font-black";
+
+  const box = document.getElementById("sqOpts");
+  box.innerHTML = "";
+  q.options.forEach((opt, idx)=>{
+    const b = document.createElement("button");
+    b.className = (sMode==="sop")
+      ? "w-full text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-2xl p-5 font-black text-xl transition"
+      : "w-full text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl p-4 font-bold transition";
+    b.innerText = opt;
+    b.onclick = ()=>answerStudent(idx);
+    box.appendChild(b);
+  });
+
+  document.getElementById("modalSQ").classList.remove("hidden");
+
+  // auto read in SOP
+  if(sMode==="sop"){
+    speakSQ();
+  }else{
+    if(window.speechSynthesis) window.speechSynthesis.cancel();
+  }
+}
+
+function answerStudent(idx){
+  if(!sActiveQ) return;
+  const correct = Number(sActiveQ.correctIndex) === idx;
+
+  // lock
+  document.querySelectorAll("#sqOpts button").forEach((b,i)=>{
+    b.disabled = true;
+    b.classList.remove("hover:bg-slate-700");
+    if(i === Number(sActiveQ.correctIndex)) b.classList.add("border-emerald-500");
+    if(i === idx && !correct) b.classList.add("border-rose-500");
+    b.classList.add("opacity-95");
+  });
+
+  if(correct){
+    sScore += 1;
+    document.getElementById("sScore").innerText = String(sScore);
+    document.getElementById("sqFeed").innerText = "✅ Вярно!";
+  }else{
+    document.getElementById("sqFeed").innerText = "❌ Грешно.";
+  }
+  document.getElementById("btnSQContinue").classList.remove("hidden");
+}
+
+function continueStudent(){
+  closeSQ();
+  if(sPlayer) sPlayer.playVideo();
+}
+function closeSQ(){
+  document.getElementById("modalSQ").classList.add("hidden");
+  sActiveQ = null;
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+}
+
+function speakSQ(){
+  if(!("speechSynthesis" in window)) return;
+  const txt = document.getElementById("sqText").innerText;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(txt);
+  u.lang = "bg-BG";
+  u.rate = 0.9;
+  window.speechSynthesis.speak(u);
+}
+
+function finishStudent(){
+  stopStudentTick();
+  // save locally only for home mode
+  const saved = (sMode === "home");
+  if(saved){
+    const arr = loadResults();
+    arr.unshift({
+      student: sStudentName,
+      lesson: sLessonTitle,
+      score: sScore,
+      max: sMax,
+      at: new Date().toISOString()
+    });
+    localStorage.setItem(LS_RESULTS, JSON.stringify(arr.slice(0,200)));
+  }
+
+  document.getElementById("finInfo").innerText =
+    `${sStudentName} • ${sLessonTitle} • режим: ${sMode==="home"?"Домашно":sMode==="sop"?"СОП":"Обсъждане"}`;
+  document.getElementById("finScore").innerText = String(sScore);
+  document.getElementById("finMax").innerText = String(sMax);
+  document.getElementById("finSaved").innerText =
+    saved ? "✅ Резултатът е запазен локално." : "ℹ️ Режим обсъждане – резултатът НЕ се записва.";
+
+  go("finish");
+}
+
+/* =========================
+   Results (local)
+========================= */
+function loadResults(){
+  try { return JSON.parse(localStorage.getItem(LS_RESULTS) || "[]"); }
+  catch { return []; }
+}
+
+/* =========================
+   Small helpers
+========================= */
+function escapeHtml(str){
+  return String(str||"")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+/* =========================
+   Boot
+========================= */
+go("welcome");
+</script>
 </body>
 </html>
