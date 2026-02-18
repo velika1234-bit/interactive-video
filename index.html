@@ -933,35 +933,71 @@ function startStudent(lesson, mode, name){
     width:"100%", height:"100%",
     playerVars:{ rel:0, modestbranding:1 },
     events:{
-      onReady: e => {
-        document.getElementById("sMini").innerText = "Пусни Play (ако не тръгне автоматично).";
-        startStudentTick(lesson);
-      },
-      onStateChange: e => {
-        // when ended
-        if(e.data === 0){
-          finishStudent();
-        }
-      }
+  onReady: e => {
+    document.getElementById("sMini").innerText = "Видео е заредено. Натисни Play ако не тръгне.";
+    // стартираме тик веднага (дори да е на пауза)
+    startStudentTick(lesson);
+  },
+  onStateChange: e => {
+    // 1 = playing, 2 = paused, 0 = ended
+    if(e.data === 1){
+      document.getElementById("sMini").innerText = "Върви... (следим за въпроси)";
+      // подсигуряване: тикът да работи и след play
+      startStudentTick(lesson);
     }
+    if(e.data === 2){
+      document.getElementById("sMini").innerText = "Пауза";
+    }
+    if(e.data === 0){
+      finishStudent();
+    }
+  }
+}
+
   });
 }
 
 function startStudentTick(lesson){
   stopStudentTick();
+
+  // normalize questions (важно)
+  lesson.questions = (lesson.questions || [])
+    .map(q => ({
+      ...q,
+      time: Number(q.time),
+      correctIndex: Number(q.correctIndex),
+      options: Array.isArray(q.options) ? q.options.slice(0,4) : ["","","",""]
+    }))
+    .filter(q => Number.isFinite(q.time))
+    .sort((a,b)=>a.time-b.time);
+
+  // track by index
+  sAsked = sAsked || new Set();
+
+  // показваме диагностика
+  document.getElementById("sMini").innerText =
+    `Тик активен • Въпроси: ${lesson.questions.length}`;
+
   sTick = setInterval(()=>{
     if(!sPlayer || typeof sPlayer.getCurrentTime !== "function") return;
+
     const t = sPlayer.getCurrentTime();
     document.getElementById("sClock").innerText = fmt(t);
 
-    const qs = (lesson.questions||[]).slice().sort((a,b)=>a.time-b.time);
-    const next = qs.find(q => !sAsked.has(q.time) && t >= q.time);
-    if(next){
-      sAsked.add(next.time);
-      showStudentQuestion(next);
+    // ако времето не мърда, ще го видиш веднага
+    // търсим следващ въпрос
+    const qs = lesson.questions || [];
+    for(let i=0;i<qs.length;i++){
+      if(sAsked.has(i)) continue;
+      if(t >= qs[i].time){
+        sAsked.add(i);
+        showStudentQuestion(qs[i]);
+        break;
+      }
     }
   }, 300);
 }
+
 function stopStudentTick(){
   if(sTick) clearInterval(sTick);
   sTick = null;
