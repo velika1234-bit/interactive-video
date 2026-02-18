@@ -341,7 +341,14 @@ const YouTubeAPI = (() => {
         ready = true;
         setBadge(false);
         resolve(window.YT);
+        let ytReady = false;
+
+        window.onYouTubeIframeAPIReady = () => {
+        ytReady = true;
+        console.log("YT API READY");
       };
+
+      
 
       // If script already inserted, don't insert again
       const existing = document.querySelector('script[data-yt-iframe-api="1"]');
