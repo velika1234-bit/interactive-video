@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
 <meta charset="UTF-8" />
-<title>VideoQuiz – Part 4+ (Library + Results + QR + Toast)</title>
+<title>VideoQuiz – Local (Library + Results + QR + Toast) – Fixed Player Reset</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
@@ -80,7 +80,7 @@
                     onclick="startStudentFromCode()">Старт</button>
 
             <div class="text-xs text-slate-400">
-              Ако кодът е много дълъг: най-добре копирай от “Код за ученици” прозореца на учителя.
+              Ако кодът е много дълъг: най-добре копирай от “Код + QR” прозореца на учителя.
             </div>
           </div>
         </div>
@@ -250,7 +250,7 @@
 
           <div class="p-4 border-t border-slate-800">
             <button class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl py-3 font-bold"
-                    onclick="go('welcome')">Изход</button>
+                    onclick="resetStudentPlayerUI(); go('welcome')">Изход</button>
           </div>
         </div>
       </div>
@@ -270,7 +270,7 @@
         <div id="finSaved" class="text-sm text-slate-300 mb-6"></div>
 
         <button class="w-full bg-emerald-600 hover:bg-emerald-500 rounded-xl py-3 font-black"
-                onclick="go('welcome')">Начало</button>
+                onclick="resetStudentPlayerUI(); go('welcome')">Начало</button>
       </div>
     </section>
 
@@ -290,7 +290,7 @@
         <li>„Нов урок“ → въведи име + YouTube ID → „Видео“.</li>
         <li>Пусни видеото → на точната секунда „+ Добави въпрос“.</li>
         <li>„Запази“ → урокът е в библиотеката.</li>
-        <li>„Код + QR“ → копираш код / показваш QR за бързо пренасяне.</li>
+        <li>„Код + QR“ → копираш код / показваш QR.</li>
       </ul>
       <div class="font-bold mt-3">Ученици:</div>
       <ul class="list-disc pl-5 space-y-1">
@@ -476,6 +476,7 @@ function go(name){
   document.querySelectorAll("section[id^='screen-']").forEach(s=>s.classList.add("hidden"));
   document.getElementById("screen-"+name).classList.remove("hidden");
 
+  // when leaving screens, stop ticks (players are reset explicitly elsewhere)
   if(name !== "student") stopStudentTick();
   if(name !== "teacher") stopTeacherTick();
 
@@ -542,13 +543,6 @@ function deleteLesson(id){
   saveLibrary(list);
 }
 
-function clearLocal(){
-  if(!confirm("Сигурна ли си? Това ще изтрие локалната библиотека и локалните резултати.")) return;
-  localStorage.removeItem(LS_LIB);
-  localStorage.removeItem(LS_RESULTS);
-  toast("Нулирано.", "success");
-}
-
 /* =========================
    Results storage
 ========================= */
@@ -559,6 +553,49 @@ function loadResults(){
 function saveResults(arr){
   localStorage.setItem(LS_RESULTS, JSON.stringify(arr));
 }
+
+/* =========================
+   Student player reset (FIX)
+========================= */
+function resetStudentPlayerUI(){
+  stopStudentTick();
+  try{
+    if(sPlayer && typeof sPlayer.destroy === "function"){
+      sPlayer.destroy();
+    }
+  }catch(e){}
+  sPlayer = null;
+
+  const clock = document.getElementById("sClock");
+  const mini  = document.getElementById("sMini");
+  const box   = document.getElementById("sPlayer");
+  if(clock) clock.innerText = "0:00";
+  if(mini)  mini.innerText  = "Стартирай урока.";
+  if(box)   box.innerHTML   = "";
+}
+
+function clearLocal(){
+  if(!confirm("Сигурна ли си? Това ще изтрие локалната библиотека и локалните резултати.")) return;
+
+  // FIX: also reset players/ticks so no stale state remains
+  resetStudentPlayerUI();
+  stopTeacherTick();
+  try{
+    if(tPlayer && typeof tPlayer.destroy === "function") tPlayer.destroy();
+  }catch(e){}
+  tPlayer = null;
+  document.getElementById("tPlayer").innerHTML = "";
+  document.getElementById("tClock").innerText = "0:00";
+
+  localStorage.removeItem(LS_LIB);
+  localStorage.removeItem(LS_RESULTS);
+  toast("Нулирано.", "success");
+
+  // refresh teacher panes if open later
+  renderLibrary();
+  renderResults();
+}
+
 function clearResults(){
   if(!confirm("Изчистване на всички домашни резултати?")) return;
   localStorage.removeItem(LS_RESULTS);
@@ -591,10 +628,12 @@ function renderResults(){
 ========================= */
 function renderLibrary(){
   const list = loadLibrary();
-  const q = (document.getElementById("libSearch").value || "").toLowerCase().trim();
+  const q = (document.getElementById("libSearch")?.value || "").toLowerCase().trim();
   const filtered = q ? list.filter(x => (x.title||"").toLowerCase().includes(q)) : list;
 
   const box = document.getElementById("teacherTabLessons");
+  if(!box) return;
+
   if(filtered.length === 0){
     box.innerHTML = `<div class="text-slate-400 text-sm">Няма уроци. Натисни „Нов урок“.</div>`;
     return;
@@ -624,7 +663,12 @@ function newLesson(){
   applyLessonToEditor();
   document.getElementById("editBadge").innerText = "Редакция: Нов урок";
   stopTeacherTick();
+
+  // reset teacher player area so it doesn't keep old ended state
+  try{ if(tPlayer && typeof tPlayer.destroy==="function") tPlayer.destroy(); }catch(e){}
+  tPlayer = null;
   document.getElementById("tPlayer").innerHTML = "";
+  document.getElementById("tClock").innerText = "0:00";
   document.getElementById("tHint").innerText = "Въведи YouTube ID и натисни „Видео“.";
   renderTeacherQuestions();
   markAutosave("—");
@@ -639,7 +683,12 @@ function selectLesson(id){
   applyLessonToEditor();
   document.getElementById("editBadge").innerText = "Редакция: " + (workingLesson.title || "Без име");
   stopTeacherTick();
+
+  // reset teacher player area (avoid stale ended state)
+  try{ if(tPlayer && typeof tPlayer.destroy==="function") tPlayer.destroy(); }catch(e){}
+  tPlayer = null;
   document.getElementById("tPlayer").innerHTML = "";
+  document.getElementById("tClock").innerText = "0:00";
   document.getElementById("tHint").innerText = "Натисни „Видео“ за да заредиш плеъра.";
   renderTeacherQuestions();
   markAutosave("—");
@@ -668,7 +717,10 @@ function removeLesson(id){
     document.getElementById("tVid").value = "";
     document.getElementById("tQList").innerHTML = `<div class="text-slate-400 text-sm">Избери урок или създай нов.</div>`;
     stopTeacherTick();
+    try{ if(tPlayer && typeof tPlayer.destroy==="function") tPlayer.destroy(); }catch(e){}
+    tPlayer = null;
     document.getElementById("tPlayer").innerHTML = "";
+    document.getElementById("tClock").innerText = "0:00";
     markAutosave("—");
   }
   renderLibrary();
@@ -726,7 +778,10 @@ function bootTeacherPlayer(){
   }
 
   stopTeacherTick();
+  try{ if(tPlayer && typeof tPlayer.destroy==="function") tPlayer.destroy(); }catch(e){}
+  tPlayer = null;
   document.getElementById("tPlayer").innerHTML = "";
+  document.getElementById("tClock").innerText = "0:00";
 
   tPlayer = new YT.Player("tPlayer",{
     videoId: workingLesson.videoId,
@@ -734,6 +789,7 @@ function bootTeacherPlayer(){
     playerVars:{ rel:0, modestbranding:1 },
     events:{
       onReady: e => {
+        try{ e.target.seekTo(0,true); }catch(_){}
         document.getElementById("tHint").innerText = "Пусни видеото. На точната секунда натисни „+ Добави въпрос“.";
         startTeacherTick();
       }
@@ -755,6 +811,8 @@ function stopTeacherTick(){
 
 function renderTeacherQuestions(){
   const box = document.getElementById("tQList");
+  if(!box) return;
+
   if(!workingLesson){
     box.innerHTML = `<div class="text-slate-400 text-sm">Избери урок или създай нов.</div>`;
     return;
@@ -772,7 +830,7 @@ function renderTeacherQuestions(){
       </div>
       <div class="text-xs text-slate-400">Верен: <b>${Number(q.correctIndex)+1}</b></div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-        ${q.options.map((o,i)=>`<div class="bg-slate-800 border border-slate-700 rounded-xl p-2 ${i===q.correctIndex?'text-emerald-300':''}">
+        ${(q.options||[]).map((o,i)=>`<div class="bg-slate-800 border border-slate-700 rounded-xl p-2 ${i===q.correctIndex?'text-emerald-300':''}">
           ${i+1}) ${escapeHtml(o)}
         </div>`).join("")}
       </div>
@@ -944,7 +1002,6 @@ function refreshQR(){
     toast("Няма код за QR.", "warn");
     return;
   }
-  // QR image via public endpoint
   const url = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(code)}`;
   document.getElementById("qrImg").src = url;
 }
@@ -1073,8 +1130,9 @@ function startStudent(lesson, mode, name){
 
   document.getElementById("btnSpeak").classList.toggle("hidden", mode!=="sop");
 
-  stopStudentTick();
-  document.getElementById("sPlayer").innerHTML = "";
+  // FIX: hard reset player + UI every new session
+  resetStudentPlayerUI();
+
   go("student");
 
   sPlayer = new YT.Player("sPlayer", {
@@ -1083,7 +1141,11 @@ function startStudent(lesson, mode, name){
     playerVars:{ rel:0, modestbranding:1 },
     events:{
       onReady: e => {
-        document.getElementById("sMini").innerText = `Тик активен • Въпроси: ${lesson.questions.length} • Натисни Play ако не тръгне.`;
+        // FIX: always start from 0 for a fresh session
+        try{ e.target.seekTo(0, true); }catch(_){}
+        document.getElementById("sClock").innerText = "0:00";
+        document.getElementById("sMini").innerText =
+          `Тик активен • Въпроси: ${lesson.questions.length} • Натисни Play ако не тръгне.`;
         startStudentTick(lesson);
       },
       onStateChange: e => {
@@ -1226,7 +1288,7 @@ function finishStudent(){
 
   go("finish");
 
-  // refresh teacher results if teacher screen open later
+  // refresh teacher results
   renderResults();
 }
 
