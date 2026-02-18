@@ -919,7 +919,18 @@ const Live = {
 
     // QR = link to join screen with pin prefilled
     const url = location.origin + location.pathname + "#join=" + LiveState.pin;
-    document.getElementById("liveQr").innerHTML = `<img class="rounded-xl bg-white p-2" alt="QR" src="${qrDataUrl(url)}">`;
+    const qrBox = document.getElementById("liveQr");
+    qrBox.innerHTML = ""; // чистим старото
+    QRCode.toCanvas(url, { width: 220, margin: 1 }, (err, canvas) => {
+  if (err) {
+    console.warn(err);
+    qrBox.innerHTML = `<div class="text-rose-200 text-sm font-bold">QR не можа да се генерира</div>`;
+    return;
+  }
+  canvas.className = "rounded-xl bg-white p-2";
+  qrBox.appendChild(canvas);
+});
+
     toast("Сесията е подготвена. Дай ПИН/QR.", "info");
   },
 
@@ -965,11 +976,7 @@ function escapeHTML(s){
     .replaceAll("'","&#039;");
 }
 
-// Lightweight QR via Google Chart (works fine for demo)
-function qrDataUrl(text){
-  const u = "https://chart.googleapis.com/chart?cht=qr&chs=220x220&chl=" + encodeURIComponent(text);
-  return u;
-}
+
 
 /* =========================================================
    9) BOOT
