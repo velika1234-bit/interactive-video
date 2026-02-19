@@ -1318,12 +1318,23 @@ onAuthStateChanged(auth, async (u) => {
   console.log('📁 Profile path:', profRef.path);
   const prof = await getDoc(profRef);
   console.log('📄 Profile exists?', prof.exists());
+  const profRef = userProfileRef(u.uid);
+  console.log('🔥 Profile path:', profRef.path);
+  const prof = await getDoc(profRef);
+  console.log('🔥 Profile exists?', prof.exists());
+if (prof.exists()) {
+  console.log('🔥 Profile data:', prof.data());
+} else {
+  console.log('🔥 Profile MISSING');
+}
   if (prof.exists()) {
     console.log('📄 Profile data:', prof.data());
     if (prof.data().role === 'teacher') {
       console.log('✅ Role is teacher → should enter');
     } else {
       console.log('❌ Role is NOT teacher:', prof.data().role);
+      console.log('🔥 User:', u?.uid, u?.email);
+
     }
   } else {
     console.log('❌ Profile document MISSING');
