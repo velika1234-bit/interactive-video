@@ -552,101 +552,218 @@ function fmtTime(seconds){
   
 let editingQIndex = null;
 
-  window.openQModal=(idx=null)=>{
-    // idx != null => редакция на съществуващ въпрос
-    if((idx===null || idx===undefined) && (!edPlayer || !edVideo)) return toast("Първо заредете видео.","error");
-    try{ edPlayer && edPlayer.pauseVideo && edPlayer.pauseVideo(); }catch(e){}
+  
+// --------- Question Modal (v2 - DOM-safe) ---------
+let editingQIndex = null;
+let mqDraft = null;
 
-    editingQIndex = (idx===null || idx===undefined) ? null : idx;
+function mq$(id){ return document.getElementById(id); }
 
-    const q = (editingQIndex!==null) ? (edQs[editingQIndex]||null) : null;
+function getTeacherVideoTime(){
+  try{
+    if(window.tPlayer && typeof window.tPlayer.getCurrentTime==="function") return Number(window.tPlayer.getCurrentTime())||0;
+  }catch(e){}
+  return 0;
+}
 
-    $("mqText").value = q ? (q.text||"") : "";
-    $("mqType").value = q ? (q.type||"single") : "single";
-    $("mqPoints").value = q ? (q.points||1) : 1;
+function renderModal(){
+  const type = mq$("mqType")?.value || "single";
+  const body = mq$("mqBody");
+  if(!body) return;
 
-    // време
-    modalBase = q ? (Number(q.t||0)||0) : Math.round(Number((edPlayer && edPlayer.getCurrentTime? edPlayer.getCurrentTime():0) || 0)*10)/10;
-    $("mqTime").value = modalBase;
+  const q = mqDraft || {};
+  const opts = Array.isArray(q.options) ? q.options.slice(0,4) : ["","","",""];
+  while(opts.length<4) opts.push("");
 
-    // приемливи отговори (само за open)
-    $("mqAccept").value = q && Array.isArray(q.accept) ? q.accept.join(" | ") : (q && typeof q.accept==="string" ? q.accept : "");
+  const correct = q.correct;
+  const accept = Array.isArray(q.accept) ? q.accept.join(" | ") : (typeof q.accept==="string" ? q.accept : "");
 
-    // опции / правилни
-    const opts = (q && Array.isArray(q.options)) ? q.options : ["","","",""];
-    $("mqA").value = opts[0]||""; $("mqB").value = opts[1]||""; $("mqC").value = opts[2]||""; $("mqD").value = opts[3]||"";
+  const radioChecked = (i)=> (type==="single" && Number(correct)===i) ? "checked" : "";
+  const cbChecked = (i)=> (type==="multiple" && Array.isArray(correct) && correct.includes(i)) ? "checked" : "";
+  const escV = (v)=> (typeof window.esc==="function" ? window.esc(String(v??"")) : String(v??"").replace(/[&<>"]/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c])));
 
-    const corr = (q && Array.isArray(q.correct)) ? q.correct : [];
-    $("mqSingle").value = (corr[0]!==undefined) ? String(corr[0]) : "0";
-    $("mqM0").checked = corr.includes(0);
-    $("mqM1").checked = corr.includes(1);
-    $("mqM2").checked = corr.includes(2);
-    $("mqM3").checked = corr.includes(3);
-
-    renderModal();
-    $("qModal").classList.remove("hidden"); $("qModal").classList.add("flex"); icons();
-  };
-
-  window.closeQModal=()=>{ $("qModal").classList.add("hidden"); $("qModal").classList.remove("flex"); editingQIndex=null; };
-
-  window.setModalNow=()=>{
-    if(!edPlayer) return;
-    modalBase=Math.round(Number(edPlayer.getCurrentTime()||0)*10)/10;
-    $("mqTime").value=modalBase;
-  };
-
-  function renderModal(){
-    const t=$("mqType").value;
-    $("mqOptsWrap").classList.toggle("hidden", !(t==="single"||t==="multiple"));
-    $("mqSingleWrap").classList.toggle("hidden", t!=="single");
-    $("mqMultiWrap").classList.toggle("hidden", t!=="multiple");
-    $("mqNumWrap").classList.toggle("hidden", t!=="numeric");
-    $("mqBoolWrap").classList.toggle("hidden", t!=="boolean");
-
-    // свободен отговор
-    $("mqAcceptWrap").classList.toggle("hidden", t!=="open");
+  if(type==="single" || type==="multiple"){
+    body.innerHTML = `
+      <div class="space-y-3">
+        <div class="text-sm text-slate-400">Отговори</div>
+        ${[0,1,2,3].map(i=>`
+          <div class="flex items-center gap-3">
+            ${type==="single"
+              ? `<input type="radio" name="mqCorrect" value="${i}" class="h-5 w-5" ${radioChecked(i)} />`
+              : `<input type="checkbox" id="mqCorr${i}" class="h-5 w-5" ${cbChecked(i)} />`
+            }
+            <input id="mqOpt${i}" type="text" class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10"
+              placeholder="${["A","B","C","D"][i]}" value="${escV(opts[i])}" />
+          </div>
+        `).join("")}
+        <p class="text-xs text-slate-500">Съвет: при „множествен“ маркирай всички верни.</p>
+      </div>
+    `;
+    return;
   }
-  window.renderModal=renderModal;
 
-  window.saveModalQ=()=>{
-    const type=$("mqType").value;
-    const text=String($("mqText").value||"").trim();
-    if(!text) return toast("Липсва текст на въпроса.","error");
+  if(type==="open"){
+    body.innerHTML = `
+      <div class="space-y-3">
+        <div class="text-sm text-slate-400">Свободен отговор</div>
+        <input id="mqAccept" type="text" class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10"
+          placeholder="Приеми като верни (пример: софия | София)" value="${escV(accept)}" />
+        <p class="text-xs text-slate-500">Можеш да въведеш няколко варианта, разделени с <b>|</b>.</p>
+      </div>
+    `;
+    return;
+  }
 
-    let q={ t:Number($("mqTime").value||0)||0, text, type, points:Number($("mqPoints").value||1)||1 };
+  if(type==="boolean"){
+    const v = (correct===true || correct==="true") ? "true" : (correct===false || correct==="false") ? "false" : "";
+    body.innerHTML = `
+      <div class="space-y-3">
+        <div class="text-sm text-slate-400">Вярно / Невярно</div>
+        <select id="mqBool" class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10">
+          <option value="">— избери —</option>
+          <option value="true" ${v==="true"?"selected":""}>Вярно</option>
+          <option value="false" ${v==="false"?"selected":""}>Невярно</option>
+        </select>
+      </div>
+    `;
+    return;
+  }
 
-    if(type==="numeric"){
-      q.correct=[ Number($("mqNum").value||0) ];
-    } else if(type==="boolean"){
-      q.correct=[ $("mqBool").value==="true" ? 1 : 0 ];
-    } else if(type==="single"){
-      const opts=[ $("mqA").value, $("mqB").value, $("mqC").value, $("mqD").value ].map(s=>String(s||"").trim());
-      if(opts.filter(Boolean).length<2) return toast("Попълнете поне 2 отговора.","error");
-      q.options=opts;
-      q.correct=[ Number($("mqSingle").value||0) ];
-    } else if(type==="multiple"){
-      const opts=[ $("mqA").value, $("mqB").value, $("mqC").value, $("mqD").value ].map(s=>String(s||"").trim());
-      if(opts.filter(Boolean).length<2) return toast("Попълнете поне 2 отговора.","error");
-      const corr=[ $("mqM0").checked?0:null, $("mqM1").checked?1:null, $("mqM2").checked?2:null, $("mqM3").checked?3:null ].filter(v=>v!==null);
-      if(!corr.length) return toast("Маркирайте поне 1 верен отговор.","error");
-      q.options=opts;
-      q.correct=corr;
-    } else if(type==="open"){
-      const acc=String($("mqAccept").value||"").split("|").map(s=>s.trim()).filter(Boolean);
-      q.accept=acc;
+  if(type==="numeric"){
+    const num = (typeof correct==="number" || (typeof correct==="string" && correct.trim()!=="")) ? String(correct) : "";
+    body.innerHTML = `
+      <div class="space-y-3">
+        <div class="text-sm text-slate-400">Числов отговор</div>
+        <input id="mqNum" type="number" step="any" class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10"
+          placeholder="напр. 3.14" value="${escV(num)}" />
+      </div>
+    `;
+    return;
+  }
+
+  body.innerHTML = `<p class="text-sm text-slate-400">Неподдържан тип въпрос.</p>`;
+}
+window.renderModal = renderModal;
+
+window.openQModal = (q=null, idx=null) => {
+  editingQIndex = (typeof idx==="number") ? idx : null;
+  mqDraft = q ? JSON.parse(JSON.stringify(q)) : { t: Math.round(getTeacherVideoTime()*10)/10, type:"single", text:"", options:["","","",""], correct:0, points:1, accept:[] };
+
+  const titleEl = mq$("mqText");
+  const timeEl  = mq$("mqTime");
+  const typeEl  = mq$("mqType");
+  const ptsEl   = mq$("mqPoints");
+
+  if(titleEl) titleEl.value = mqDraft.text || "";
+  if(timeEl)  timeEl.value  = (mqDraft.t ?? 0);
+  if(typeEl)  typeEl.value  = mqDraft.type || "single";
+  if(ptsEl)   ptsEl.value   = (mqDraft.points ?? 1);
+
+  renderModal();
+  if(typeof window.showModal==="function") window.showModal("qModal");
+};
+
+window.setModalNow = () => {
+  const timeEl = mq$("mqTime");
+  if(timeEl) timeEl.value = Math.round(getTeacherVideoTime()*10)/10;
+};
+
+window.playFromModal = () => {
+  try{
+    const t = Number(mq$("mqTime")?.value || 0) || 0;
+    if(window.tPlayer && typeof window.tPlayer.seekTo==="function"){
+      window.tPlayer.seekTo(t, true);
+      if(typeof window.tPlayer.playVideo==="function") window.tPlayer.playVideo();
     }
+  }catch(e){}
+};
 
-    q = norm(q);
+window.closeQModal = () => {
+  if(typeof window.closeModal==="function") window.closeModal("qModal");
+};
 
-    if(editingQIndex!==null){
-      edQs[editingQIndex]=q;
-    } else {
-      edQs.push(q);
+window.saveModalQ = () => {
+  const textEl = mq$("mqText");
+  const timeEl = mq$("mqTime");
+  const typeEl = mq$("mqType");
+  const ptsEl  = mq$("mqPoints");
+
+  const qText = (textEl?.value||"").trim();
+  const qTime = Number(timeEl?.value||0) || 0;
+  const qType = (typeEl?.value||"single");
+  const qPts  = Math.max(0, Number(ptsEl?.value||1) || 1);
+
+  if(!qText){
+    if(typeof window.toast==="function") window.toast("Въведи текст на въпроса.", "warn");
+    return;
+  }
+
+  const q = { t: qTime, type: qType, text: qText, points: qPts, options:[], correct:null, accept:[] };
+
+  if(qType==="single" || qType==="multiple"){
+    const opts = [0,1,2,3].map(i=> (mq$("mqOpt"+i)?.value||"").trim());
+    if(opts.filter(Boolean).length < 2){
+      if(typeof window.toast==="function") window.toast("Въведи поне 2 отговора.", "warn");
+      return;
     }
-    renderEdQs();
-    closeQModal();
-    toast("Запазено.","ok");
-  };
+    q.options = opts;
+
+    if(qType==="single"){
+      const picked = document.querySelector('input[name="mqCorrect"]:checked');
+      q.correct = picked ? Number(picked.value) : 0;
+    }else{
+      const corr=[];
+      [0,1,2,3].forEach(i=>{ if(mq$("mqCorr"+i)?.checked) corr.push(i); });
+      if(!corr.length){
+        if(typeof window.toast==="function") window.toast("Маркирай поне един верен отговор.", "warn");
+        return;
+      }
+      q.correct = corr;
+    }
+  }else if(qType==="open"){
+    const acc = (mq$("mqAccept")?.value||"").trim();
+    q.accept = acc ? acc.split("|").map(s=>s.trim()).filter(Boolean) : [];
+    q.correct = null;
+  }else if(qType==="boolean"){
+    const v = mq$("mqBool")?.value || "";
+    if(v!=="true" && v!=="false"){
+      if(typeof window.toast==="function") window.toast("Избери Вярно или Невярно.", "warn");
+      return;
+    }
+    q.correct = (v==="true");
+  }else if(qType==="numeric"){
+    const v = mq$("mqNum")?.value;
+    if(v===null || v===undefined || String(v).trim()===""){
+      if(typeof window.toast==="function") window.toast("Въведи числова стойност.", "warn");
+      return;
+    }
+    q.correct = Number(v);
+    if(Number.isNaN(q.correct)){
+      if(typeof window.toast==="function") window.toast("Невалидно число.", "warn");
+      return;
+    }
+  }
+
+  try{
+    if(window.edQs && Array.isArray(window.edQs)){
+      if(editingQIndex===null){
+        window.edQs.push(q);
+      }else{
+        window.edQs[editingQIndex] = q;
+      }
+      if(typeof window.norm==="function"){
+        window.edQs = window.edQs.map(window.norm).sort((a,b)=>(a.t||0)-(b.t||0));
+      }else{
+        window.edQs.sort((a,b)=>(a.t||0)-(b.t||0));
+      }
+      if(typeof window.renderEdQs==="function") window.renderEdQs();
+      if(typeof window.toast==="function") window.toast("Записано.", "success");
+      window.closeQModal();
+    }
+  }catch(e){ console.error(e); }
+};
+// --------- /Question Modal (v2) ---------
+;
 
 
   window.playQ=(t)=>{ try{edPlayer.seekTo(t,true);edPlayer.playVideo()}catch(e){} };
@@ -981,3 +1098,4 @@ let editingQIndex = null;
 </script>
 </body>
 </html>
+
