@@ -8,3 +8,10 @@ html, body { height: 100%; margin: 0; }
 
 @keyframes pop { 0%{transform:scale(.96);opacity:0} 100%{transform:scale(1);opacity:1} }
 .animate-pop { animation: pop .25s ease-out forwards; }
+iframe {
+  pointer-events: none !important;
+}
+
+#player iframe {
+  pointer-events: auto !important;
+}
