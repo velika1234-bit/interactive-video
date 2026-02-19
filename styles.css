@@ -1,0 +1,173 @@
+/* VideoQuiz Ultimate - custom styles (kept minimal; Tailwind CDN does most of the UI) */
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Nunito, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+/* Utilities */
+.hidden { display: none !important; }
+.btn { border-radius: 1rem; }
+.card {
+  border: 1px solid rgb(226 232 240);
+  border-radius: 1.25rem;
+  background: #fff;
+}
+.toast {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  align-items: flex-end;
+}
+.titem {
+  padding: .75rem 1rem;
+  border-radius: 1rem;
+  color: #fff;
+  font-weight: 900;
+  box-shadow: 0 10px 20px rgba(0,0,0,.15);
+}
+
+/* ---- Editor layout safeguards ---- */
+/* Prevent invisible overlays from swallowing clicks */
+#edOverlay.hidden {
+  pointer-events: none !important;
+}
+/* If overlay is visible, it should block only the video area, not the right panel */
+#edOverlay {
+  pointer-events: auto;
+}
+
+/* Keep the editor grid usable on medium screens */
+@media (max-width: 1024px) {
+  /* Stack video over panel when space is tight */
+  #screen-editor > div.h-\[calc\(100\%-64px\)\] {
+    display: block !important;
+    height: auto !important;
+  }
+  #screen-editor > div.h-\[calc\(100\%-64px\)\] > div {
+    width: 100% !important;
+  }
+  #screen-editor #edPanel {
+    margin-top: 1rem;
+  }
+}
+
+/* ---- Question edit modal (old удобен стил) ---- */
+#qModal {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: none; /* JS toggles by adding/removing .hidden or inline display */
+}
+#qModal:not(.hidden) {
+  display: flex;
+}
+#qModal .vq-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 6, 23, .65); /* slate-950 */
+  backdrop-filter: blur(4px);
+}
+#qModal .vq-sheet {
+  position: relative;
+  margin: auto;
+  width: min(720px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 30px 80px rgba(0,0,0,.35);
+  padding: 18px;
+}
+#qModal .vq-sheet h3 {
+  font-size: 22px;
+  font-weight: 900;
+  margin: 0 0 10px 0;
+}
+#qModal .vq-row {
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  gap: 12px;
+  align-items: center;
+}
+@media (max-width: 520px) {
+  #qModal .vq-row {
+    grid-template-columns: 1fr;
+  }
+}
+#qModal input, #qModal select, #qModal textarea {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(15,23,42,.15);
+  padding: 12px 12px;
+  font-weight: 700;
+  outline: none;
+}
+#qModal textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+#qModal .vq-answers {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+#qModal .vq-answer {
+  display: grid;
+  grid-template-columns: 26px 1fr 28px;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid rgba(15,23,42,.10);
+  border-radius: 16px;
+  padding: 10px 12px;
+  background: rgba(248,250,252,.75);
+}
+#qModal .vq-answer button {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 900;
+  opacity: .7;
+}
+#qModal .vq-answer button:hover { opacity: 1; }
+#qModal .vq-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+#qModal .vq-primary {
+  border: none;
+  border-radius: 18px;
+  padding: 14px 16px;
+  font-weight: 900;
+  font-size: 18px;
+  cursor: pointer;
+  background: #2563eb; /* blue-600 */
+  color: #fff;
+  box-shadow: 0 14px 30px rgba(37,99,235,.35);
+}
+#qModal .vq-primary:hover {
+  filter: brightness(.95);
+}
+#qModal .vq-cancel {
+  border: none;
+  background: transparent;
+  font-weight: 800;
+  opacity: .7;
+  cursor: pointer;
+  padding: 6px 0;
+}
+#qModal .vq-cancel:hover { opacity: 1; }
+
+/* Make the edit icon areas reliably clickable */
+button, [role="button"], a {
+  -webkit-tap-highlight-color: transparent;
+}
