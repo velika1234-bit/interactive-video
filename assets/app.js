@@ -1311,6 +1311,20 @@ window.VQ = {
 
 /* ------------------ Auth state ------------------ */
 onAuthStateChanged(auth, async (u) => {
+   console.log('🔥 onAuthStateChanged:', u?.uid, u?.email);
+  if (!u) { switchScreen('welcome'); return; }
+
+  // Добавете тези редове за проверка на profile документа
+  const profRef = userProfileRef(u.uid);
+  console.log('📁 Profile path:', profRef.path);
+  const prof = await getDoc(profRef);
+  console.log('📄 Profile exists?', prof.exists());
+  if (prof.exists()) {
+    console.log('📄 Profile data:', prof.data());
+  } else {
+    console.log('📄 Profile document missing!');
+  }
+
   user = u;
 
   // always icons
