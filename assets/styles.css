@@ -1,25 +1,87 @@
-html, body { height: 100%; margin: 0; }
-#app { min-height: 100dvh; }
+/* styles.css */
 
-.screen { min-height: 100dvh; }
-
-.sop-text { font-size: 1.6rem !important; line-height: 1.3 !important; }
-.sop-btn  { font-size: 1.15rem !important; padding: 1.25rem !important; }
-
-@keyframes pop { 0%{transform:scale(.96);opacity:0} 100%{transform:scale(1);opacity:1} }
-.animate-pop { animation: pop .25s ease-out forwards; }
-iframe {
-  pointer-events: none !important;
+/* 0) Базово */
+html, body {
+  height: 100%;
+  margin: 0;
 }
 
-#player iframe {
-  pointer-events: auto !important;
-}
+* { box-sizing: border-box; }
+
+/* 1) Стабилен layout за Екран "Редактор" (видео + панел) */
 #screen-editor {
-  position: relative;
-  z-index: 10;
+  height: 100vh;
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px; /* видео | панел */
+  gap: 16px;
+  align-items: stretch;
 }
 
-#player {
-  z-index: 1;
+/* Лява колона (видеото) */
+#screen-editor .editor-left,
+#screen-editor .videoWrap,
+#screen-editor .video-wrap,
+#screen-editor .video-area,
+#screen-editor .playerWrap {
+  position: relative;
+  min-width: 0;         /* важно при grid/flex */
+  overflow: hidden;     /* реже всичко извън колоната */
+  border-radius: 16px;
+}
+
+/* Ако нямаш wrapper клас – поне ограничаваме контейнера на плеъра */
+#tPlayer,
+#sPlayer,
+#hostPlayer,
+#player,
+#ytPlayer,
+#yt-player,
+#videoHost,
+#videoPlayer {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0;
+}
+
+/* Самият iframe на YouTube – без absolute “изтичане” */
+#tPlayer iframe,
+#sPlayer iframe,
+#hostPlayer iframe,
+#player iframe,
+#ytPlayer iframe,
+#yt-player iframe,
+#videoHost iframe,
+#videoPlayer iframe {
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  pointer-events: auto;
+}
+
+/* Дясна колона (панел с въпросите) */
+#screen-editor .editor-right,
+#screen-editor .editor-panel,
+#screen-editor .questions-panel,
+#screen-editor aside {
+  position: relative;
+  z-index: 10;          /* над всичко */
+  min-width: 0;
+}
+
+/* 2) Мобилен режим: колони -> редове (видео над панела) */
+@media (max-width: 980px) {
+  #screen-editor {
+    grid-template-columns: 1fr;
+    grid-template-rows: 52vh auto;
+  }
+}
+
+/* 3) Подсигуряване: кликаемост на бутоните (ако някой слой пречи) */
+button, a, input, select, textarea {
+  position: relative;
+  z-index: 20;
 }
