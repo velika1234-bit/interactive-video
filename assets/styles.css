@@ -15,3 +15,11 @@ iframe {
 #player iframe {
   pointer-events: auto !important;
 }
+#screen-editor {
+  position: relative;
+  z-index: 10;
+}
+
+#player {
+  z-index: 1;
+}
