@@ -52,7 +52,7 @@
                 <input id="ind-disc" type="checkbox" class="accent-amber-500"> Обсъждане
               </label>
             </div>
-            <button class="btn bg-indigo-600 hover:bg-indigo-700 text-white w-full" onclick="startSolo()">Старт</button>
+            <button type="button" class="btn bg-indigo-600 hover:bg-indigo-700 text-white w-full" onclick="window.startSolo()">Старт</button>
           </div>
 
           <div class="card p-5 space-y-3 bg-emerald-50">
@@ -62,7 +62,7 @@
             </div>
             <input id="live-name" class="w-full p-3 rounded-xl border border-emerald-200 font-bold text-center" placeholder="Име">
             <input id="live-pin" class="w-full p-3 rounded-xl border border-emerald-200 font-black text-center text-lg tracking-widest" placeholder="ПИН" inputmode="numeric">
-            <button class="btn bg-emerald-600 hover:bg-emerald-700 text-white w-full" onclick="joinLive()">Влез</button>
+            <button type="button" class="btn bg-emerald-600 hover:bg-emerald-700 text-white w-full" onclick="window.joinLive()">Влез</button>
           </div>
         </div>
 
@@ -83,8 +83,8 @@
             <input id="auth-code" type="password" class="w-full p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 font-black text-center tracking-widest" placeholder="код за регистрация">
             <div class="text-[11px] text-amber-300 font-bold">Само при регистрация</div>
           </div>
-          <button id="auth-btn" class="btn bg-indigo-600 hover:bg-indigo-500 w-full" onclick="authSubmit()">Влез</button>
-          <button id="auth-toggle" class="text-sm font-bold text-slate-300 hover:text-white w-full" onclick="toggleAuth()">Нямате акаунт? Регистрация</button>
+          <button type="button" id="auth-btn" class="btn bg-indigo-600 hover:bg-indigo-500 w-full" onclick="window.authSubmit()">Влез</button>
+          <button type="button" id="auth-toggle" class="text-sm font-bold text-slate-300 hover:text-white w-full" onclick="window.toggleAuth()">Нямате акаунт? Регистрация</button>
         </div>
       </div>
     </div>
@@ -104,8 +104,8 @@
       </div>
     </div>
     <div class="flex items-center gap-2">
-      <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs" onclick="openEditor()">Нов урок</button>
-      <button class="p-2 rounded-xl hover:bg-rose-50 text-slate-500 hover:text-rose-600" onclick="logout()" title="Изход">
+      <button type="button" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs" onclick="window.openEditor()">Нов урок</button>
+      <button type="button" class="p-2 rounded-xl hover:bg-rose-50 text-slate-500 hover:text-rose-600" onclick="window.logout()" title="Изход">
         <i data-lucide="log-out" class="w-5 h-5"></i>
       </button>
     </div>
@@ -120,7 +120,7 @@
     <div class="card overflow-hidden">
       <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
         <div class="font-black">Индивидуални резултати</div>
-        <button class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-black text-xs hover:bg-slate-50" onclick="exportSoloExcel()">Excel</button>
+        <button type="button" class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-black text-xs hover:bg-slate-50" onclick="window.exportSoloExcel()">Excel</button>
       </div>
       <div class="overflow-auto">
         <table class="w-full text-sm">
@@ -138,13 +138,13 @@
 <section id="screen-editor" class="hidden h-full w-full overflow-hidden bg-slate-100">
   <header class="bg-white border-b border-slate-200 p-4 flex items-center justify-between">
     <div class="flex items-center gap-2">
-      <button class="p-2 rounded-xl hover:bg-slate-100" onclick="goTeacher()"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+      <button type="button" class="p-2 rounded-xl hover:bg-slate-100" onclick="window.goTeacher()"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
       <div>
         <div class="font-black">Редактор</div>
         <div id="edSub" class="text-[10px] font-black uppercase tracking-widest text-slate-400">Нов урок</div>
       </div>
     </div>
-    <button class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black" onclick="saveLesson()">Запази</button>
+    <button type="button" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black" onclick="window.saveLesson()">Запази</button>
   </header>
 
   <div class="h-[calc(100%-64px)] grid lg:grid-cols-[1fr,420px]">
@@ -154,7 +154,7 @@
         <div class="w-full max-w-md space-y-3 text-center">
           <div class="text-white text-2xl font-black">Поставете видео</div>
           <input id="edUrl" class="w-full p-3 rounded-xl font-bold" placeholder="YouTube линк">
-          <button class="btn bg-indigo-600 hover:bg-indigo-700 text-white w-full" onclick="loadEditorVideo()">Зареди</button>
+          <button type="button" class="btn bg-indigo-600 hover:bg-indigo-700 text-white w-full" onclick="window.loadEditorVideo()">Зареди</button>
           <div class="text-slate-300 text-xs font-bold">YouTube линк (youtube.com / youtu.be)</div>
         </div>
       </div>
@@ -164,7 +164,7 @@
         <div class="font-black text-slate-700">Въпроси</div>
         <div class="flex items-center gap-2">
           <div id="edTime" class="px-3 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-mono font-black text-xs">0:00</div>
-          <button class="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center" onclick="openQModal()">
+          <button type="button" class="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center" onclick="window.openQModal()"">
             <i data-lucide="plus" class="w-5 h-5"></i>
           </button>
         </div>
@@ -179,12 +179,12 @@
   <div id="soloPlayer" class="absolute inset-0"></div>
   <div id="soloOverlay" class="hidden absolute inset-0 bg-slate-900/95 z-10 items-center justify-center p-6">
     <div class="w-full max-w-2xl space-y-5 text-center">
-      <button id="soloSpeak" class="hidden ml-auto p-3 rounded-full bg-indigo-600 text-white" onclick="speakSolo()"><i data-lucide="volume-2" class="w-6 h-6"></i></button>
+      <button type="button" id="soloSpeak" class="hidden ml-auto p-3 rounded-full bg-indigo-600 text-white" onclick="window.speakSolo()"><i data-lucide="volume-2" class="w-6 h-6"></i></button>
       <div id="soloQ" class="text-white text-3xl font-black"></div>
       <div id="soloOpts" class="grid gap-3"></div>
       <textarea id="soloOpen" class="hidden w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 outline-none" rows="3" placeholder="Напиши отговор..."></textarea>
 
-      <button id="soloConfirm" class="hidden btn bg-indigo-600 hover:bg-indigo-700 text-white w-full" onclick="confirmSolo()">Потвърди</button>
+      <button type="button" id="soloConfirm" class="hidden btn bg-indigo-600 hover:bg-indigo-700 text-white w-full" onclick="window.confirmSolo()">Потвърди</button>
     </div>
   </div>
 </section>
@@ -195,7 +195,7 @@
     <div class="text-5xl">🏆</div>
     <div class="text-2xl font-black">Резултат</div>
     <div id="finishScore" class="text-6xl font-black text-indigo-700">0/0</div>
-    <button class="btn bg-slate-900 hover:bg-slate-950 text-white w-full" onclick="goWelcome()">Начало</button>
+    <button type="button" class="btn bg-slate-900 hover:bg-slate-950 text-white w-full" onclick="window.goWelcome()">Начало</button>
   </div>
 </section>
 
@@ -210,22 +210,22 @@
       <div class="text-xs font-black text-slate-300 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4"></i><span id="hostCount">0</span></div>
     </div>
     <div class="flex items-center gap-2">
-      <button id="hostExportX" class="hidden px-3 py-2 rounded-xl bg-emerald-600 font-black text-xs" onclick="exportHostExcel()">Excel</button>
-      <button id="hostExportP" class="hidden px-3 py-2 rounded-xl bg-indigo-600 font-black text-xs" onclick="exportHostPDF()">PDF</button>
-      <button class="px-4 py-2 rounded-xl bg-slate-700 font-black text-xs" onclick="endHost()">Край</button>
+      <button type="button" id="hostExportX" class="hidden px-3 py-2 rounded-xl bg-emerald-600 font-black text-xs" onclick="window.exportHostExcel()">Excel</button>
+      <button type="button" id="hostExportP" class="hidden px-3 py-2 rounded-xl bg-indigo-600 font-black text-xs" onclick="window.exportHostPDF()">PDF</button>
+      <button type="button" class="px-4 py-2 rounded-xl bg-slate-700 font-black text-xs" onclick="window.endHost()">Край</button>
     </div>
   </header>
   <div class="h-[calc(100%-64px)] grid lg:grid-cols-[1fr,320px] gap-3 p-3 overflow-hidden">
     <div class="bg-black rounded-2xl overflow-hidden relative">
       <div id="hostPlayer" class="absolute inset-0"></div>
       <div id="hostStart" class="absolute inset-0 bg-black/70 flex items-center justify-center">
-        <button class="px-10 py-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-black text-2xl" onclick="startHostVideo()">
+        <button type="button" class="px-10 py-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-black text-2xl" onclick="window.startHostVideo()">
           ▶ Старт
         </button>
       </div>
       <div id="hostQ" class="hidden absolute inset-0 bg-black/70 items-center justify-center flex-col gap-4">
         <div class="text-3xl font-black">Въпросът е активен!</div>
-        <button class="px-10 py-5 rounded-2xl bg-emerald-600 font-black text-2xl" onclick="resumeHost()">Продължи</button>
+        <button type="button" class="px-10 py-5 rounded-2xl bg-emerald-600 font-black text-2xl" onclick="window.resumeHost()">Продължи</button>
       </div>
     </div>
     <aside class="bg-white text-slate-800 rounded-2xl overflow-hidden border border-slate-200 flex flex-col">
@@ -258,14 +258,14 @@
       <div id="cQ" class="text-xl font-black"></div>
     </div>
     <div id="cOpts" class="mt-6 space-y-3 max-w-md mx-auto"></div>
-    <button id="cConfirm" class="hidden fixed bottom-6 left-6 right-6 btn bg-indigo-600 hover:bg-indigo-700 text-white" onclick="confirmClient()">Потвърди</button>
+    <button type="button" id="cConfirm" class="hidden fixed bottom-6 left-6 right-6 btn bg-indigo-600 hover:bg-indigo-700 text-white" onclick="window.confirmClient()">Потвърди</button>
   </div>
 
   <div id="clientDone" class="hidden absolute inset-0 bg-indigo-600 text-white flex flex-col items-center justify-center gap-4">
     <div class="text-5xl font-black">КРАЙ!</div>
     <div class="text-xl font-bold">Твоят резултат:</div>
     <div id="cFinal" class="w-40 h-40 rounded-full bg-white text-indigo-700 flex items-center justify-center text-6xl font-black">0</div>
-    <button class="px-10 py-4 rounded-2xl bg-indigo-900 font-black text-lg" onclick="goWelcome()">Изход</button>
+    <button type="button" class="px-10 py-4 rounded-2xl bg-indigo-900 font-black text-lg" onclick="window.goWelcome()">Изход</button>
   </div>
 </section>
 
@@ -274,7 +274,7 @@
   <div class="card w-full max-w-2xl overflow-hidden">
     <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
       <div class="font-black text-lg">Нов въпрос</div>
-      <button class="p-2 rounded-xl hover:bg-slate-100" onclick="closeQModal()"><i data-lucide="x" class="w-5 h-5"></i></button>
+      <button type="button" class="p-2 rounded-xl hover:bg-slate-100" onclick="window.closeQModal()"><i data-lucide="x" class="w-5 h-5"></i></button>
     </div>
     <div class="p-4 space-y-4 max-h-[70vh] overflow-auto">
       <textarea id="mqText" class="w-full p-3 rounded-xl border-2 border-slate-200 bg-slate-50 font-bold h-24" placeholder="Текст на въпроса"></textarea>
@@ -298,14 +298,14 @@
         <div class="flex flex-wrap items-center gap-2">
           <div class="font-black text-slate-700">Време:</div>
           <input id="mqTime" type="number" step="0.1" min="0" value="0" class="w-28 p-2 rounded-xl border border-slate-200 bg-white font-black">
-          <button class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-black text-xs" type="button" onclick="setModalNow()">Текуща</button>
-          <button class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-black text-xs" type="button" onclick="playFromModal()">Пусни ▶</button>
+          <button class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-black text-xs" type="button" onclick="window.setModalNow()">Текуща</button>
+          <button class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-black text-xs" type="button" onclick="window.playFromModal()">Пусни ▶</button>
         </div>
       </div>
       <div id="mqBody" class="space-y-3"></div>
     </div>
     <div class="p-4 bg-slate-50 border-t border-slate-200">
-      <button class="btn bg-indigo-600 hover:bg-indigo-700 text-white w-full" onclick="saveModalQ()">Запази въпроса</button>
+      <button type="button" class="btn bg-indigo-600 hover:bg-indigo-700 text-white w-full" onclick="window.saveModalQ()">Запази въпроса</button>
     </div>
   </div>
 </div>
@@ -417,11 +417,11 @@ function fmtTime(seconds){
           <div class="font-black text-lg">${q.title||"Без име"}</div>
           <div class="text-xs font-black text-slate-400 uppercase">${n} въпроса</div>
           <div class="flex gap-2 pt-2 border-t border-slate-100">
-            <button class="flex-1 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs" onclick="startHost('${q.id}')">Старт</button>
-            <button class="px-3 py-2 rounded-xl bg-slate-100 font-black text-xs" onclick="openEditor('${q.id}')">Редакция</button>
-            <button class="px-3 py-2 rounded-xl bg-rose-50 text-rose-600 font-black text-xs" onclick="delLesson('${q.id}')">Изтрий</button>
+            <button type="button" class="flex-1 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs" onclick="window.startHost('${q.id}')">Старт</button>
+            <button type="button" class="px-3 py-2 rounded-xl bg-slate-100 font-black text-xs" onclick="window.openEditor('${q.id}')">Редакция</button>
+            <button type="button" class="px-3 py-2 rounded-xl bg-rose-50 text-rose-600 font-black text-xs" onclick="window.delLesson('${q.id}')">Изтрий</button>
           </div>
-          <button class="px-3 py-2 rounded-xl bg-amber-50 text-amber-700 font-black text-xs" onclick="shareLesson('${q.id}')">Код за самостоятелно</button>
+          <button type="button" class="px-3 py-2 rounded-xl bg-amber-50 text-amber-700 font-black text-xs" onclick="window.shareLesson('${q.id}')">Код за самостоятелно</button>
         </div>`;
     }).join("");
     renderSoloRows();
@@ -503,18 +503,18 @@ function fmtTime(seconds){
           </div>
 
           <div class="flex flex-col gap-2 shrink-0">
-            <button class="btn btn-secondary" onclick="window.editQ(${idx})"><i data-lucide="pencil" class="w-4 h-4"></i> Редакция</button>
-            <button class="btn btn-danger" onclick="window.delQ(${idx})"><i data-lucide="trash-2" class="w-4 h-4"></i> Изтрий</button>
+            <button type="button" class="btn btn-secondary" onclick="window.editQ(${idx})"><i data-lucide="pencil" class="w-4 h-4"></i> Редакция</button>
+            <button type="button" class="btn btn-danger" onclick="window.delQ(${idx})"><i data-lucide="trash-2" class="w-4 h-4"></i> Изтрий</button>
           </div>
         </div>
 
         <div class="mt-3 flex items-center gap-2 flex-wrap">
           <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Време:</div>
-          <button class="btn btn-secondary" onclick="window.bumpQT(${idx},-0.5)">-0.5s</button>
-          <button class="btn btn-secondary" onclick="window.bumpQT(${idx},-0.1)">-0.1s</button>
+          <button type="button" class="btn btn-secondary" onclick="window.bumpQT(${idx},-0.5)">-0.5s</button>
+          <button type="button" class="btn btn-secondary" onclick="window.bumpQT(${idx},-0.1)">-0.1s</button>
           <input type="number" step="0.1" value="${Number(q.t||0)}" oninput="window.setQT(${idx}, this.value)" class="w-24 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white font-bold">
-          <button class="btn btn-secondary" onclick="window.bumpQT(${idx},0.1)">+0.1s</button>
-          <button class="btn btn-secondary" onclick="window.bumpQT(${idx},0.5)">+0.5s</button>
+          <button type="button" class="btn btn-secondary" onclick="window.bumpQT(${idx},0.1)">+0.1s</button>
+          <button type="button" class="btn btn-secondary" onclick="window.bumpQT(${idx},0.5)">+0.5s</button>
           <div class="text-xs text-slate-500">Съвет: за по-точно уцелване – пусни видеото, пауза, после „Редакция“.</div>
         </div>
       </div>
@@ -868,7 +868,7 @@ window.saveModalQ = () => {
       return;
     }
     const list=(q.type==="boolean")?["Вярно","Грешно"]:q.options;
-    o.innerHTML=list.map((x,i)=>`<button class="btn bg-white/10 border border-white/15 text-white text-left" onclick="pickSolo(${i})">${x}</button>`).join("");
+    o.innerHTML=list.map((x,i)=>`<button type="button" class="btn bg-white/10 border border-white/15 text-white text-left" onclick="window.pickSolo(${i})">${x}</button>`).join("");
   }
 
   window.pickSolo=(i)=>{ soloSel=i; $("soloConfirm").classList.remove("hidden"); };
@@ -1056,7 +1056,7 @@ window.saveModalQ = () => {
       return;
     }
     const list=(q.type==="boolean")?["Вярно","Грешно"]:q.options;
-    o.innerHTML=list.map((x,i)=>`<button class="btn bg-white border border-slate-200 w-full text-left" onclick="pickClient(${i},this)">${x}</button>`).join("");
+    o.innerHTML=list.map((x,i)=>`<button type="button" class="btn bg-white border border-slate-200 w-full text-left" onclick="window.pickClient(${i},this)">${x}</button>`).join("");
   }
 
   window.pickClient=(i,el)=>{
@@ -1095,4 +1095,3 @@ window.saveModalQ = () => {
 </script>
 </body>
 </html>
-
