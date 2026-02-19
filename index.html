@@ -326,6 +326,10 @@
   };
 
 // --- TIME HELPERS (fix for editor) ---
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
 function fmtTime(seconds){
   const total = Math.max(0, Math.floor(Number(seconds) || 0));
   const h = Math.floor(total / 3600);
@@ -334,7 +338,6 @@ function fmtTime(seconds){
   const mm = String(m).padStart(2,'0');
   const ss = String(s).padStart(2,'0');
   return h>0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
- 
 }
 
 
@@ -357,17 +360,6 @@ function fmtTime(seconds){
   // === UI helpers ===
   const $ = (id)=>document.getElementById(id);
   const fmt = (s)=>{const m=Math.floor(s/60),ss=Math.floor(s%60);return `${m}:${ss<10?'0':''}${ss}`};
-  // Безопасно ескейпване на текст (за редактора)
-function esc(str) {
-  if (!str) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
   const toast=(t,kind="info")=>{
     const c=$("toasts");const d=document.createElement("div");
     d.className="titem "+(kind==="error"?"bg-rose-600":kind==="success"?"bg-emerald-600":"bg-indigo-600");
@@ -546,7 +538,7 @@ function esc(str) {
   function initEdPlayer(videoId){
     $("edPlayer").innerHTML='<div id="edYT" class="w-full h-full"></div>';
     edPlayer=new YT.Player("edYT",{videoId,width:"100%",height:"100%",playerVars:{autoplay:0,controls:1,rel:0},
-      events:{onReady:()=>{edTInt=setInterval(()=>{try{$("edTime").textContent=fmt(edPlayer.getCurrentTime()||0)}catch(e){}},250);}}});
+      events:{onReady:()=>{edTInt=setInterval(()=>{try{$("edTime").textContent=fmtTime(edPlayer.getCurrentTime()||0)}catch(e){}},250);}}});
   }
 
   window.loadEditorVideo=()=>{
@@ -558,6 +550,8 @@ function esc(str) {
   // Q Modal
   let modalBase=0;
   
+let editingQIndex = null;
+
   window.openQModal=(idx=null)=>{
     // idx != null => редакция на съществуващ въпрос
     if((idx===null || idx===undefined) && (!edPlayer || !edVideo)) return toast("Първо заредете видео.","error");
@@ -987,4 +981,3 @@ function esc(str) {
 </script>
 </body>
 </html>
-
