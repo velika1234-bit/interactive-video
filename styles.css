@@ -1,18 +1,30 @@
 html,body{height:100%;margin:0;font-family:Nunito,sans-serif}
-    .hidden{display:none}
-    .card{border:1px solid rgb(226 232 240);border-radius:1.25rem;background:white}
-    .btn{border-radius:1rem;padding:.85rem 1rem;font-weight:900}
-    .toast{position:fixed;top:1rem;right:1rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem;align-items:flex-end;pointer-events:none}
-    .titem{padding:.75rem 1rem;border-radius:1rem;color:white;font-weight:900;box-shadow:0 10px 20px rgba(0,0,0,.15)}
+.hidden{display:none}
+.card{border:1px solid rgb(226 232 240);border-radius:1.25rem;background:white}
+.btn{border-radius:1rem;padding:.85rem 1rem;font-weight:900}
+.toast{position:fixed;top:1rem;right:1rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem;align-items:flex-end;pointer-events:none}
+.titem{padding:.75rem 1rem;border-radius:1rem;color:white;font-weight:900;box-shadow:0 10px 20px rgba(0,0,0,.15)}
 
-/* --- Layout hardening for Editor (prevents iframe overlay blocking clicks) --- */
+/* --- Editor layout --- */
 #screen-editor{height:100vh;}
 #screen-editor .ed-grid{height:calc(100vh - 64px);}
 #screen-editor .ed-video-col{position:relative; overflow:hidden;}
 #screen-editor #edPlayer{position:absolute; inset:0; width:100%; height:100%; z-index:1;}
 #screen-editor #edPlayer iframe{width:100% !important; height:100% !important; display:block;}
 #screen-editor .ed-side{position:relative; z-index:5;}
-#screen-editor .ed-fab{position:sticky; top:0; z-index:10;}
 
-/* Make small action buttons always clickable */
-button{touch-action:manipulation;}
+/* --- Модален прозорец --- */
+#qModal .card{max-height:90vh; overflow:hidden;}
+#qModal #mqBody{max-height:50vh; overflow-y:auto;}
+
+/* --- Таблици с резултати (скрол) --- */
+#soloRows{max-height:400px; overflow-y:auto; display:block;}
+
+/* --- Учителски панел --- */
+#lessonGrid{max-height:500px; overflow-y:auto;}
+
+/* --- Дребни подобрения за мобилни --- */
+@media (max-width:640px){
+  .btn{padding:.7rem .8rem; font-size:0.9rem;}
+  .card{padding:1rem;}
+}
