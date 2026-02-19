@@ -334,6 +334,7 @@ function fmtTime(seconds){
   const mm = String(m).padStart(2,'0');
   const ss = String(s).padStart(2,'0');
   return h>0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
+ 
 }
 
 
@@ -356,6 +357,17 @@ function fmtTime(seconds){
   // === UI helpers ===
   const $ = (id)=>document.getElementById(id);
   const fmt = (s)=>{const m=Math.floor(s/60),ss=Math.floor(s%60);return `${m}:${ss<10?'0':''}${ss}`};
+  // Безопасно ескейпване на текст (за редактора)
+function esc(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
   const toast=(t,kind="info")=>{
     const c=$("toasts");const d=document.createElement("div");
     d.className="titem "+(kind==="error"?"bg-rose-600":kind==="success"?"bg-emerald-600":"bg-indigo-600");
