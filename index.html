@@ -182,6 +182,8 @@
       <button id="soloSpeak" class="hidden ml-auto p-3 rounded-full bg-indigo-600 text-white" onclick="speakSolo()"><i data-lucide="volume-2" class="w-6 h-6"></i></button>
       <div id="soloQ" class="text-white text-3xl font-black"></div>
       <div id="soloOpts" class="grid gap-3"></div>
+      <textarea id="soloOpen" class="hidden w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 outline-none" rows="3" placeholder="Напиши отговор..."></textarea>
+
       <button id="soloConfirm" class="hidden btn bg-indigo-600 hover:bg-indigo-700 text-white w-full" onclick="confirmSolo()">Потвърди</button>
     </div>
   </div>
@@ -282,6 +284,7 @@
           <select id="mqType" class="w-full mt-2 p-3 rounded-xl border-2 border-slate-200 bg-slate-50 font-bold" onchange="renderModal()">
             <option value="single">Един верен</option>
             <option value="multiple">Множество верни</option>
+            <option value="open">Свободен отговор</option>
             <option value="boolean">Вярно / Грешно</option>
             <option value="numeric">Плъзгач (число)</option>
           </select>
@@ -445,30 +448,60 @@
   const ytId=(u)=>{const m=(u||"").match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([\w-]{11})/);return m?m[1]:null;};
   const norm=(q)=>{
     if(typeof q.t!=="number") q.t=Number(q.t||q.time||0)||0;
+    if(!q.type) q.type="single";
     if(!Array.isArray(q.options)) q.options=[];
     if(!Array.isArray(q.correct)) q.correct = (typeof q.correct==="number")?[q.correct]:[];
-    if(!q.type) q.type="single";
+    // за свободен отговор: приемливи отговори (по желание)
+    if(!Array.isArray(q.accept)){
+      if(typeof q.accept==="string"){
+        q.accept = q.accept.split("|").map(s=>s.trim()).filter(Boolean);
+      } else {
+        q.accept = [];
+      }
+    }
     q.points = Number(q.points||1)||1;
     return q;
   };
 
   function renderEdQs(){
-    $("edQList").innerHTML = edQs.sort((a,b)=>a.t-b.t).map((q,i)=>`
+    const entries = edQs.map((q,idx)=>({q,idx})).sort((a,b)=>a.q.t-b.q.t);
+    $("edQList").innerHTML = entries.map(({q,idx})=>`
       <div class="card p-4">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="px-2 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-mono font-black text-xs">${fmt(q.t||0)}</span>
-              <span class="text-[10px] uppercase font-black text-slate-400">${q.type} • ${q.points}т</span>
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="pill">⏱ ${fmtTime(q.t||0)}</div>
+              <div class="pill">${q.type==="open"?"✍️ свободен":q.type==="multiple"?"☑️ множество":q.type==="single"?"🔘 един":q.type==="numeric"?"# число":"✓ вярно/грешно"}</div>
+              <div class="pill">⭐ ${q.points||1}</div>
             </div>
-            <div class="mt-2 font-black">${q.text||""}</div>
+            <div class="font-black mt-2 break-words">${esc(q.text||"")}</div>
+            ${(q.type==="single"||q.type==="multiple") ? `
+              <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-slate-200">
+                ${(q.options||[]).map((o,j)=>o?`<div class="px-3 py-2 rounded-xl bg-white/5 border border-white/10">
+                  <span class="font-black">${String.fromCharCode(65+j)}.</span> ${esc(o)} ${q.correct&&q.correct.includes(j)?'<span class="text-emerald-400 font-black">✓</span>':""}
+                </div>`:"").join("")}
+              </div>
+            `:""}
+            ${q.type==="open" && Array.isArray(q.accept) && q.accept.length ? `<div class="mt-2 text-xs text-slate-400">Приемливи: <span class="text-slate-200">${esc(q.accept.join(" | "))}</span></div>`:""}
           </div>
-          <div class="flex gap-1">
-            <button class="p-2 rounded-xl hover:bg-slate-100" onclick="playQ(${q.t||0})"><i data-lucide="play" class="w-4 h-4"></i></button>
-            <button class="p-2 rounded-xl hover:bg-rose-50 text-rose-600" onclick="delQ(${i})"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+
+          <div class="flex flex-col gap-2 shrink-0">
+            <button class="btn btn-secondary" onclick="window.editQ(${idx})"><i data-lucide="pencil" class="w-4 h-4"></i> Редакция</button>
+            <button class="btn btn-danger" onclick="window.delQ(${idx})"><i data-lucide="trash-2" class="w-4 h-4"></i> Изтрий</button>
           </div>
         </div>
-      </div>`).join("");
+
+        <div class="mt-3 flex items-center gap-2 flex-wrap">
+          <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Време:</div>
+          <button class="btn btn-secondary" onclick="window.bumpQT(${idx},-0.5)">-0.5s</button>
+          <button class="btn btn-secondary" onclick="window.bumpQT(${idx},-0.1)">-0.1s</button>
+          <input type="number" step="0.1" value="${Number(q.t||0)}" oninput="window.setQT(${idx}, this.value)" class="w-24 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white font-bold">
+          <button class="btn btn-secondary" onclick="window.bumpQT(${idx},0.1)">+0.1s</button>
+          <button class="btn btn-secondary" onclick="window.bumpQT(${idx},0.5)">+0.5s</button>
+          <div class="text-xs text-slate-500">Съвет: за по-точно уцелване – пусни видеото, пауза, после „Редакция“.</div>
+        </div>
+      </div>
+    `).join("") || `<div class="text-slate-400">Няма въпроси още. Натисни „+ Добави въпрос“.</div>`;
     icons();
   }
 
@@ -499,87 +532,103 @@
 
   // Q Modal
   let modalBase=0;
-  window.openQModal=()=>{
-    if(!edPlayer||!edVideo) return toast("Първо заредете видео.","error");
-    try{edPlayer.pauseVideo()}catch(e){}
-    $("mqText").value=""; $("mqType").value="single"; $("mqPoints").value=1;
-    modalBase=Math.round(Number(edPlayer.getCurrentTime()||0)*10)/10; $("mqTime").value=modalBase;
+  
+  window.openQModal=(idx=null)=>{
+    // idx != null => редакция на съществуващ въпрос
+    if((idx===null || idx===undefined) && (!edPlayer || !edVideo)) return toast("Първо заредете видео.","error");
+    try{ edPlayer && edPlayer.pauseVideo && edPlayer.pauseVideo(); }catch(e){}
+
+    editingQIndex = (idx===null || idx===undefined) ? null : idx;
+
+    const q = (editingQIndex!==null) ? (edQs[editingQIndex]||null) : null;
+
+    $("mqText").value = q ? (q.text||"") : "";
+    $("mqType").value = q ? (q.type||"single") : "single";
+    $("mqPoints").value = q ? (q.points||1) : 1;
+
+    // време
+    modalBase = q ? (Number(q.t||0)||0) : Math.round(Number((edPlayer && edPlayer.getCurrentTime? edPlayer.getCurrentTime():0) || 0)*10)/10;
+    $("mqTime").value = modalBase;
+
+    // приемливи отговори (само за open)
+    $("mqAccept").value = q && Array.isArray(q.accept) ? q.accept.join(" | ") : (q && typeof q.accept==="string" ? q.accept : "");
+
+    // опции / правилни
+    const opts = (q && Array.isArray(q.options)) ? q.options : ["","","",""];
+    $("mqA").value = opts[0]||""; $("mqB").value = opts[1]||""; $("mqC").value = opts[2]||""; $("mqD").value = opts[3]||"";
+
+    const corr = (q && Array.isArray(q.correct)) ? q.correct : [];
+    $("mqSingle").value = (corr[0]!==undefined) ? String(corr[0]) : "0";
+    $("mqM0").checked = corr.includes(0);
+    $("mqM1").checked = corr.includes(1);
+    $("mqM2").checked = corr.includes(2);
+    $("mqM3").checked = corr.includes(3);
+
     renderModal();
     $("qModal").classList.remove("hidden"); $("qModal").classList.add("flex"); icons();
   };
-  window.closeQModal=()=>{ $("qModal").classList.add("hidden"); $("qModal").classList.remove("flex"); };
-  window.setModalNow=()=>{ modalBase=Math.round(Number(edPlayer.getCurrentTime()||0)*10)/10; $("mqTime").value=modalBase; };
-  window.playFromModal=()=>{ const t=Number($("mqTime").value||0); try{edPlayer.seekTo(t,true);edPlayer.playVideo()}catch(e){} };
 
-  window.renderModal=()=>{
-    const type=$("mqType").value; const b=$("mqBody"); b.innerHTML="";
-    if(type==="numeric"){
-      b.innerHTML=`
-        <div class="grid grid-cols-2 gap-3">
-          <input id="mqMin" type="number" value="0" class="p-3 rounded-xl border-2 border-slate-200 bg-slate-50 font-black" placeholder="Мин">
-          <input id="mqMax" type="number" value="100" class="p-3 rounded-xl border-2 border-slate-200 bg-slate-50 font-black" placeholder="Макс">
-          <input id="mqStep" type="number" value="1" class="p-3 rounded-xl border-2 border-slate-200 bg-slate-50 font-black" placeholder="Стъпка">
-          <input id="mqTol" type="number" value="0" class="p-3 rounded-xl border-2 border-slate-200 bg-slate-50 font-black" placeholder="Толеранс">
-        </div>
-        <input id="mqCorrectNum" type="number" value="0" class="w-full p-3 rounded-xl border-2 border-slate-200 bg-slate-50 font-black" placeholder="Верен отговор">`;
-      return;
-    }
-    if(type==="boolean"){
-      b.innerHTML=`
-        <div class="card p-4 bg-slate-50 space-y-2">
-          <div class="font-black">Верен отговор</div>
-          <label class="flex items-center gap-2 font-bold"><input type="radio" name="mqBool" value="true" checked> Вярно</label>
-          <label class="flex items-center gap-2 font-bold"><input type="radio" name="mqBool" value="false"> Грешно</label>
-        </div>`;
-      return;
-    }
-    const isMulti=type==="multiple";
-    b.innerHTML=`
-      <div class="card p-4 bg-slate-50 space-y-3">
-        <div class="font-black">Отговори</div>
-        <div id="mqOpts" class="space-y-2"></div>
-        <div class="border-t border-slate-200 pt-3">
-          <div class="font-black mb-2">Маркирай верен(и)</div>
-          <div id="mqCorrect" class="space-y-2"></div>
-        </div>
-      </div>`;
-    const opts=["Отговор А","Отговор Б","Отговор В","Отговор Г"];
-    $("mqOpts").innerHTML=opts.map((v,i)=>`<input class="w-full p-3 rounded-xl border-2 border-slate-200 bg-white font-bold" data-i="${i}" value="${v}">`).join("");
-    const rebuild=()=>{
-      const os=[...document.querySelectorAll("#mqOpts input")].map(x=>x.value.trim()).filter(Boolean);
-      const t=isMulti?"checkbox":"radio"; const name=isMulti?"":"name='mqSingle'";
-      $("mqCorrect").innerHTML=os.map((o,i)=>`<label class="flex items-center gap-2 font-bold"><input type="${t}" ${name} data-i="${i}"> ${o}</label>`).join("");
-    };
-    document.querySelectorAll("#mqOpts input").forEach(i=>i.addEventListener("input",rebuild)); rebuild();
+  window.closeQModal=()=>{ $("qModal").classList.add("hidden"); $("qModal").classList.remove("flex"); editingQIndex=null; };
+
+  window.setModalNow=()=>{
+    if(!edPlayer) return;
+    modalBase=Math.round(Number(edPlayer.getCurrentTime()||0)*10)/10;
+    $("mqTime").value=modalBase;
   };
+
+  function renderModal(){
+    const t=$("mqType").value;
+    $("mqOptsWrap").classList.toggle("hidden", !(t==="single"||t==="multiple"));
+    $("mqSingleWrap").classList.toggle("hidden", t!=="single");
+    $("mqMultiWrap").classList.toggle("hidden", t!=="multiple");
+    $("mqNumWrap").classList.toggle("hidden", t!=="numeric");
+    $("mqBoolWrap").classList.toggle("hidden", t!=="boolean");
+
+    // свободен отговор
+    $("mqAcceptWrap").classList.toggle("hidden", t!=="open");
+  }
+  window.renderModal=renderModal;
 
   window.saveModalQ=()=>{
-    const text=($("mqText").value||"").trim(); if(!text) return toast("Въведете текст.","error");
-    const type=$("mqType").value; const points=Number($("mqPoints").value||1)||1;
-    const t=Math.max(0,Number($("mqTime").value||0));
-    const q={t:Math.round(t*10)/10,text,type,points};
+    const type=$("mqType").value;
+    const text=String($("mqText").value||"").trim();
+    if(!text) return toast("Липсва текст на въпроса.","error");
+
+    let q={ t:Number($("mqTime").value||0)||0, text, type, points:Number($("mqPoints").value||1)||1 };
+
     if(type==="numeric"){
-      q.min=Number($("mqMin").value||0); q.max=Number($("mqMax").value||100); q.step=Number($("mqStep").value||1);
-      q.tol=Number($("mqTol").value||0); q.correctNum=Number($("mqCorrectNum").value||0);
-      q.options=[]; q.correct=[];
-    }else if(type==="boolean"){
-      const val=document.querySelector("input[name='mqBool']:checked")?.value==="true";
-      q.options=["Вярно","Грешно"]; q.correct=[val?0:1];
-    }else{
-      const os=[...document.querySelectorAll("#mqOpts input")].map(x=>x.value.trim()).filter(Boolean);
-      if(os.length<2) return toast("Поне 2 отговора.","error");
-      q.options=os;
-      if(type==="single"){
-        const s=document.querySelector("#mqCorrect input[type='radio']:checked"); if(!s) return toast("Маркирай верен.","error");
-        q.correct=[Number(s.dataset.i)];
-      }else{
-        const s=[...document.querySelectorAll("#mqCorrect input[type='checkbox']:checked")].map(x=>Number(x.dataset.i));
-        if(!s.length) return toast("Маркирай поне един верен.","error");
-        q.correct=s.sort((a,b)=>a-b);
-      }
+      q.correct=[ Number($("mqNum").value||0) ];
+    } else if(type==="boolean"){
+      q.correct=[ $("mqBool").value==="true" ? 1 : 0 ];
+    } else if(type==="single"){
+      const opts=[ $("mqA").value, $("mqB").value, $("mqC").value, $("mqD").value ].map(s=>String(s||"").trim());
+      if(opts.filter(Boolean).length<2) return toast("Попълнете поне 2 отговора.","error");
+      q.options=opts;
+      q.correct=[ Number($("mqSingle").value||0) ];
+    } else if(type==="multiple"){
+      const opts=[ $("mqA").value, $("mqB").value, $("mqC").value, $("mqD").value ].map(s=>String(s||"").trim());
+      if(opts.filter(Boolean).length<2) return toast("Попълнете поне 2 отговора.","error");
+      const corr=[ $("mqM0").checked?0:null, $("mqM1").checked?1:null, $("mqM2").checked?2:null, $("mqM3").checked?3:null ].filter(v=>v!==null);
+      if(!corr.length) return toast("Маркирайте поне 1 верен отговор.","error");
+      q.options=opts;
+      q.correct=corr;
+    } else if(type==="open"){
+      const acc=String($("mqAccept").value||"").split("|").map(s=>s.trim()).filter(Boolean);
+      q.accept=acc;
     }
-    edQs.push(norm(q)); renderEdQs(); closeQModal(); toast("Добавен въпрос.","success");
+
+    q = norm(q);
+
+    if(editingQIndex!==null){
+      edQs[editingQIndex]=q;
+    } else {
+      edQs.push(q);
+    }
+    renderEdQs();
+    closeQModal();
+    toast("Запазено.","ok");
   };
+
 
   window.playQ=(t)=>{ try{edPlayer.seekTo(t,true);edPlayer.playVideo()}catch(e){} };
   window.delQ=(i)=>{ if(!confirm("Изтриване?")) return; edQs.splice(i,1); renderEdQs(); };
@@ -598,14 +647,41 @@
     }
     toast("Запазено!","success"); show("teacher");
   };
+  window.editQ=(i)=>{ openQModal(i); };
+
+  window.setQT=(i,val)=>{
+    const t = Math.max(0, Number(val)||0);
+    if(!edQs[i]) return;
+    edQs[i].t = Math.round(t*10)/10;
+    renderEdQs();
+  };
+  window.bumpQT=(i,delta)=>{
+    if(!edQs[i]) return;
+    edQs[i].t = Math.max(0, Math.round(((Number(edQs[i].t)||0)+delta)*10)/10);
+    renderEdQs();
+  };
+
 
   // === SOLO PLAY ===
   let soloPlayer=null, soloQuiz=null, soloIdx=-1, soloScore=0, soloMax=0, soloSel=null, sop=false, disc=false, soloName="Анонимен", soloDone=false;
   const maxPts=(qs)=>qs.reduce((a,q)=>a+(Number(q.points||1)||1),0);
   const correct=(q,ans)=>{
-    if(q.type==="numeric") return Math.abs(Number(ans)-Number(q.correctNum||0))<=Number(q.tol||0);
-    if(q.type==="multiple"){const a=[...(ans||[])].sort((x,y)=>x-y),c=[...(q.correct||[])].sort((x,y)=>x-y);return JSON.stringify(a)===JSON.stringify(c);}
-    return (q.correct||[])[0]===Number(ans);
+    if(!q) return false;
+    if(q.type==='numeric') return Number(ans)===Number(q.correct?.[0]);
+    if(q.type==='boolean') return Number(ans)===Number(q.correct?.[0]);
+    if(q.type==='open'){
+      const a = String(ans||"").trim().toLowerCase();
+      const acc = Array.isArray(q.accept)? q.accept : [];
+      if(!acc.length) return false; // записваме, но не оценяваме автоматично
+      return acc.map(s=>String(s||"").trim().toLowerCase()).includes(a);
+    }
+    if(q.type==='multiple'){
+      const A=(Array.isArray(ans)?ans:[]).slice().sort().join(',');
+      const B=(Array.isArray(q.correct)?q.correct:[]).slice().sort().join(',');
+      return A===B;
+    }
+    // single
+    return Number(ans)===Number(q.correct?.[0]);
   };
 
   window.startSolo=async ()=>{
@@ -671,9 +747,27 @@
   };
 
   window.confirmSolo=async ()=>{
-    const q=soloQuiz.q[soloIdx]; let ans=soloSel;
+    const q=soloQuiz.q[soloIdx];
+    let ans=soloSel;
+
     if(q.type==="numeric") ans=Number(document.getElementById("soloRange").value);
-    if(correct(q,ans)){ soloScore += (Number(q.points||1)||1); toast("Вярно!","success"); } else toast("Грешно…","error");
+    if(q.type==="open") ans=String(document.getElementById("soloOpen").value||"").trim();
+
+    const hasAuto = q.type==="open" ? (Array.isArray(q.accept) && q.accept.length>0) : true;
+    const ok = correct(q,ans);
+
+    if(q.type==="open" && !hasAuto){
+      toast("Отговорът е записан (без автоматична оценка).","ok");
+    } else if(ok){
+      soloScore += (Number(q.points||1)||1);
+      toast("Вярно!","success");
+    } else {
+      toast("Грешно…","error");
+    }
+
+    // запис на отговора
+    soloAnswers.push({t:q.t, type:q.type||"single", answer:ans, ok: ok===true });
+
     $("soloOverlay").classList.add("hidden"); $("soloOverlay").classList.remove("flex");
     try{speechSynthesis.cancel()}catch(e){}
     setTimeout(()=>{try{soloPlayer.playVideo()}catch(e){}},600);
