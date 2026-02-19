@@ -11,12 +11,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
   <script>
     try{tailwind.config={theme:{extend:{fontFamily:{sans:['Nunito','sans-serif']}}}}}catch(e){}
   </script>
- </head>
-<body class="bg-slate-50 text-slate-800">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-50 text-slate-800 overflow-hidden">
 <div id="toasts" class="toast"></div>
 
 <!-- WELCOME -->
@@ -45,7 +45,7 @@
                 <input id="ind-disc" type="checkbox" class="accent-amber-500"> Обсъждане
               </label>
             </div>
-            <button type="button" class="btn bg-indigo-600 hover:bg-indigo-700 text-white w-full" onclick="window.startSolo()">Старт</button>
+            <button class="btn bg-indigo-600 hover:bg-indigo-700 text-white w-full" onclick="startSolo()">Старт</button>
           </div>
 
           <div class="card p-5 space-y-3 bg-emerald-50">
@@ -55,7 +55,7 @@
             </div>
             <input id="live-name" class="w-full p-3 rounded-xl border border-emerald-200 font-bold text-center" placeholder="Име">
             <input id="live-pin" class="w-full p-3 rounded-xl border border-emerald-200 font-black text-center text-lg tracking-widest" placeholder="ПИН" inputmode="numeric">
-            <button type="button" class="btn bg-emerald-600 hover:bg-emerald-700 text-white w-full" onclick="window.joinLive()">Влез</button>
+            <button class="btn bg-emerald-600 hover:bg-emerald-700 text-white w-full" onclick="joinLive()">Влез</button>
           </div>
         </div>
 
@@ -76,8 +76,8 @@
             <input id="auth-code" type="password" class="w-full p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 font-black text-center tracking-widest" placeholder="код за регистрация">
             <div class="text-[11px] text-amber-300 font-bold">Само при регистрация</div>
           </div>
-          <button type="button" id="auth-btn" class="btn bg-indigo-600 hover:bg-indigo-500 w-full" onclick="window.authSubmit()">Влез</button>
-          <button type="button" id="auth-toggle" class="text-sm font-bold text-slate-300 hover:text-white w-full" onclick="window.toggleAuth()">Нямате акаунт? Регистрация</button>
+          <button id="auth-btn" class="btn bg-indigo-600 hover:bg-indigo-500 w-full" onclick="authSubmit()">Влез</button>
+          <button id="auth-toggle" class="text-sm font-bold text-slate-300 hover:text-white w-full" onclick="toggleAuth()">Нямате акаунт? Регистрация</button>
         </div>
       </div>
     </div>
@@ -97,8 +97,8 @@
       </div>
     </div>
     <div class="flex items-center gap-2">
-      <button type="button" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs" onclick="window.openEditor()">Нов урок</button>
-      <button type="button" class="p-2 rounded-xl hover:bg-rose-50 text-slate-500 hover:text-rose-600" onclick="window.logout()" title="Изход">
+      <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs" onclick="openEditor()">Нов урок</button>
+      <button class="p-2 rounded-xl hover:bg-rose-50 text-slate-500 hover:text-rose-600" onclick="logout()" title="Изход">
         <i data-lucide="log-out" class="w-5 h-5"></i>
       </button>
     </div>
@@ -113,7 +113,7 @@
     <div class="card overflow-hidden">
       <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
         <div class="font-black">Индивидуални резултати</div>
-        <button type="button" class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-black text-xs hover:bg-slate-50" onclick="window.exportSoloExcel()">Excel</button>
+        <button class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-black text-xs hover:bg-slate-50" onclick="exportSoloExcel()">Excel</button>
       </div>
       <div class="overflow-auto">
         <table class="w-full text-sm">
@@ -128,26 +128,26 @@
 </section>
 
 <!-- EDITOR -->
-<section id="screen-editor" class="hidden h-full w-full bg-slate-100">
+<section id="screen-editor" class="hidden h-full w-full overflow-hidden bg-slate-100">
   <header class="bg-white border-b border-slate-200 p-4 flex items-center justify-between">
     <div class="flex items-center gap-2">
-      <button type="button" class="p-2 rounded-xl hover:bg-slate-100" onclick="window.goTeacher()"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+      <button class="p-2 rounded-xl hover:bg-slate-100" onclick="goTeacher()"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
       <div>
         <div class="font-black">Редактор</div>
         <div id="edSub" class="text-[10px] font-black uppercase tracking-widest text-slate-400">Нов урок</div>
       </div>
     </div>
-    <button type="button" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black" onclick="window.saveLesson()">Запази</button>
+    <button class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black" onclick="saveLesson()">Запази</button>
   </header>
 
   <div class="h-[calc(100%-64px)] grid lg:grid-cols-[1fr,420px]">
     <div class="bg-black relative">
       <div id="edPlayer" class="absolute inset-0"></div>
-      <div id="edOverlay" class="absolute inset-0 bg-slate-900/90 flex items-center justify-center p-6">
+      <div id="edPanel" id="edOverlay" class="absolute inset-0 bg-slate-900/90 flex items-center justify-center p-6">
         <div class="w-full max-w-md space-y-3 text-center">
           <div class="text-white text-2xl font-black">Поставете видео</div>
           <input id="edUrl" class="w-full p-3 rounded-xl font-bold" placeholder="YouTube линк">
-          <button type="button" class="btn bg-indigo-600 hover:bg-indigo-700 text-white w-full" onclick="window.loadEditorVideo()">Зареди</button>
+          <button class="btn bg-indigo-600 hover:bg-indigo-700 text-white w-full" onclick="loadEditorVideo()">Зареди</button>
           <div class="text-slate-300 text-xs font-bold">YouTube линк (youtube.com / youtu.be)</div>
         </div>
       </div>
@@ -157,7 +157,7 @@
         <div class="font-black text-slate-700">Въпроси</div>
         <div class="flex items-center gap-2">
           <div id="edTime" class="px-3 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-mono font-black text-xs">0:00</div>
-          <button type="button" class="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center" onclick="window.openQModal()"">
+          <button class="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center" onclick="openQModal()">
             <i data-lucide="plus" class="w-5 h-5"></i>
           </button>
         </div>
@@ -172,12 +172,10 @@
   <div id="soloPlayer" class="absolute inset-0"></div>
   <div id="soloOverlay" class="hidden absolute inset-0 bg-slate-900/95 z-10 items-center justify-center p-6">
     <div class="w-full max-w-2xl space-y-5 text-center">
-      <button type="button" id="soloSpeak" class="hidden ml-auto p-3 rounded-full bg-indigo-600 text-white" onclick="window.speakSolo()"><i data-lucide="volume-2" class="w-6 h-6"></i></button>
+      <button id="soloSpeak" class="hidden ml-auto p-3 rounded-full bg-indigo-600 text-white" onclick="speakSolo()"><i data-lucide="volume-2" class="w-6 h-6"></i></button>
       <div id="soloQ" class="text-white text-3xl font-black"></div>
       <div id="soloOpts" class="grid gap-3"></div>
-      <textarea id="soloOpen" class="hidden w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 outline-none" rows="3" placeholder="Напиши отговор..."></textarea>
-
-      <button type="button" id="soloConfirm" class="hidden btn bg-indigo-600 hover:bg-indigo-700 text-white w-full" onclick="window.confirmSolo()">Потвърди</button>
+      <button id="soloConfirm" class="hidden btn bg-indigo-600 hover:bg-indigo-700 text-white w-full" onclick="confirmSolo()">Потвърди</button>
     </div>
   </div>
 </section>
@@ -188,7 +186,7 @@
     <div class="text-5xl">🏆</div>
     <div class="text-2xl font-black">Резултат</div>
     <div id="finishScore" class="text-6xl font-black text-indigo-700">0/0</div>
-    <button type="button" class="btn bg-slate-900 hover:bg-slate-950 text-white w-full" onclick="window.goWelcome()">Начало</button>
+    <button class="btn bg-slate-900 hover:bg-slate-950 text-white w-full" onclick="goWelcome()">Начало</button>
   </div>
 </section>
 
@@ -203,22 +201,22 @@
       <div class="text-xs font-black text-slate-300 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4"></i><span id="hostCount">0</span></div>
     </div>
     <div class="flex items-center gap-2">
-      <button type="button" id="hostExportX" class="hidden px-3 py-2 rounded-xl bg-emerald-600 font-black text-xs" onclick="window.exportHostExcel()">Excel</button>
-      <button type="button" id="hostExportP" class="hidden px-3 py-2 rounded-xl bg-indigo-600 font-black text-xs" onclick="window.exportHostPDF()">PDF</button>
-      <button type="button" class="px-4 py-2 rounded-xl bg-slate-700 font-black text-xs" onclick="window.endHost()">Край</button>
+      <button id="hostExportX" class="hidden px-3 py-2 rounded-xl bg-emerald-600 font-black text-xs" onclick="exportHostExcel()">Excel</button>
+      <button id="hostExportP" class="hidden px-3 py-2 rounded-xl bg-indigo-600 font-black text-xs" onclick="exportHostPDF()">PDF</button>
+      <button class="px-4 py-2 rounded-xl bg-slate-700 font-black text-xs" onclick="endHost()">Край</button>
     </div>
   </header>
   <div class="h-[calc(100%-64px)] grid lg:grid-cols-[1fr,320px] gap-3 p-3 overflow-hidden">
     <div class="bg-black rounded-2xl overflow-hidden relative">
       <div id="hostPlayer" class="absolute inset-0"></div>
       <div id="hostStart" class="absolute inset-0 bg-black/70 flex items-center justify-center">
-        <button type="button" class="px-10 py-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-black text-2xl" onclick="window.startHostVideo()">
+        <button class="px-10 py-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-black text-2xl" onclick="startHostVideo()">
           ▶ Старт
         </button>
       </div>
       <div id="hostQ" class="hidden absolute inset-0 bg-black/70 items-center justify-center flex-col gap-4">
         <div class="text-3xl font-black">Въпросът е активен!</div>
-        <button type="button" class="px-10 py-5 rounded-2xl bg-emerald-600 font-black text-2xl" onclick="window.resumeHost()">Продължи</button>
+        <button class="px-10 py-5 rounded-2xl bg-emerald-600 font-black text-2xl" onclick="resumeHost()">Продължи</button>
       </div>
     </div>
     <aside class="bg-white text-slate-800 rounded-2xl overflow-hidden border border-slate-200 flex flex-col">
@@ -251,14 +249,14 @@
       <div id="cQ" class="text-xl font-black"></div>
     </div>
     <div id="cOpts" class="mt-6 space-y-3 max-w-md mx-auto"></div>
-    <button type="button" id="cConfirm" class="hidden fixed bottom-6 left-6 right-6 btn bg-indigo-600 hover:bg-indigo-700 text-white" onclick="window.confirmClient()">Потвърди</button>
+    <button id="cConfirm" class="hidden fixed bottom-6 left-6 right-6 btn bg-indigo-600 hover:bg-indigo-700 text-white" onclick="confirmClient()">Потвърди</button>
   </div>
 
   <div id="clientDone" class="hidden absolute inset-0 bg-indigo-600 text-white flex flex-col items-center justify-center gap-4">
     <div class="text-5xl font-black">КРАЙ!</div>
     <div class="text-xl font-bold">Твоят резултат:</div>
     <div id="cFinal" class="w-40 h-40 rounded-full bg-white text-indigo-700 flex items-center justify-center text-6xl font-black">0</div>
-    <button type="button" class="px-10 py-4 rounded-2xl bg-indigo-900 font-black text-lg" onclick="window.goWelcome()">Изход</button>
+    <button class="px-10 py-4 rounded-2xl bg-indigo-900 font-black text-lg" onclick="goWelcome()">Изход</button>
   </div>
 </section>
 
@@ -267,46 +265,61 @@
   <div class="card w-full max-w-2xl overflow-hidden">
     <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
       <div class="font-black text-lg">Нов въпрос</div>
-      <button type="button" class="p-2 rounded-xl hover:bg-slate-100" onclick="window.closeQModal()"><i data-lucide="x" class="w-5 h-5"></i></button>
+      <button class="p-2 rounded-xl hover:bg-slate-100" onclick="closeQModal()"><i data-lucide="x" class="w-5 h-5"></i></button>
     </div>
-    <div class="p-4 space-y-4 max-h-[70vh] overflow-auto">
-      <textarea id="mqText" class="w-full p-3 rounded-xl border-2 border-slate-200 bg-slate-50 font-bold h-24" placeholder="Текст на въпроса"></textarea>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <div class="text-xs font-black uppercase text-slate-500">Тип</div>
-          <select id="mqType" class="w-full mt-2 p-3 rounded-xl border-2 border-slate-200 bg-slate-50 font-bold" onchange="renderModal()">
-            <option value="single">Един верен</option>
-            <option value="multiple">Множество верни</option>
-            <option value="open">Свободен отговор</option>
-            <option value="boolean">Вярно / Грешно</option>
-            <option value="numeric">Плъзгач (число)</option>
-          </select>
-        </div>
-        <div>
-          <div class="text-xs font-black uppercase text-slate-500">Точки</div>
-          <input id="mqPoints" type="number" min="1" value="1" class="w-full mt-2 p-3 rounded-xl border-2 border-slate-200 bg-slate-50 font-black">
+    <div class="p-4 space-y-4 max-h-[70vh] <div id="qModal" class="hidden" aria-hidden="true">
+  <div class="vq-backdrop" onclick="closeQModal()"></div>
+  <div class="vq-sheet" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-between gap-3 mb-3">
+      <h3 id="mqTitle">Редактиране</h3>
+      <div class="flex items-center gap-2">
+        <div class="px-3 py-1 rounded-xl bg-slate-900 text-white font-black text-sm" id="mqBadge">0:00</div>
+        <button type="button" class="p-2 rounded-xl hover:bg-slate-100" onclick="closeQModal()" aria-label="Затвори">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="vq-row mb-3">
+      <div>
+        <div class="text-xs font-black uppercase text-slate-500">Тип</div>
+        <select id="mqType" class="mt-2" onchange="renderModal()">
+          <option value="single">Един верен</option>
+          <option value="multiple">Множество верни</option>
+          <option value="boolean">Вярно / Грешно</option>
+          <option value="numeric">Плъзгач (число)</option>
+          <option value="text">Свободен отговор</option>
+        </select>
+      </div>
+      <div>
+        <div class="text-xs font-black uppercase text-slate-500">Точки</div>
+        <input id="mqPoints" type="number" min="1" value="1" class="mt-2">
+      </div>
+    </div>
+
+    <div class="vq-row mb-3">
+      <div>
+        <div class="text-xs font-black uppercase text-slate-500">Текст на въпроса</div>
+        <textarea id="mqText" class="mt-2" placeholder="Текст на въпроса"></textarea>
+      </div>
+      <div>
+        <div class="text-xs font-black uppercase text-slate-500">Време (сек.)</div>
+        <input id="mqTime" type="number" step="0.1" min="0" value="0" class="mt-2">
+        <div class="flex gap-2 mt-2">
+          <button class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-black text-xs" type="button" onclick="setModalNow()">Текуща</button>
+          <button class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-black text-xs" type="button" onclick="playFromModal()">Пусни ▶</button>
         </div>
       </div>
-      <div class="card p-4 bg-slate-50">
-        <div class="flex flex-wrap items-center gap-2">
-          <div class="font-black text-slate-700">Време:</div>
-          <input id="mqTime" type="number" step="0.1" min="0" value="0" class="w-28 p-2 rounded-xl border border-slate-200 bg-white font-black">
-          <button class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-black text-xs" type="button" onclick="window.setModalNow()">Текуща</button>
-          <button class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-black text-xs" type="button" onclick="window.playFromModal()">Пусни ▶</button>
-        </div>
-      </div>
-      <div id="mqBody" class="space-y-3"></div>
     </div>
-    <div class="p-4 bg-slate-50 border-t border-slate-200">
-      <button type="button" class="btn bg-indigo-600 hover:bg-indigo-700 text-white w-full" onclick="window.saveModalQ()">Запази въпроса</button>
+
+    <div id="mqBody" class="vq-answers"></div>
+
+    <div class="vq-actions">
+      <button class="vq-primary" type="button" onclick="saveModalQ()">ЗАПАЗИ</button>
+      <button class="vq-cancel" type="button" onclick="closeQModal()">Отказ</button>
     </div>
   </div>
-</div>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, addDoc, onSnapshot, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-  import { getAuth, onAuthStateChanged, signOut, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+</div>sejs/10.7.1/firebase-auth.js";
 
   // === YOUR FIREBASE CONFIG ===
   const firebaseConfig = {
@@ -317,23 +330,6 @@
     messagingSenderId: "793138692820",
     appId: "1:793138692820:web:8ee2418d28d47fca6bf141"
   };
-
-// --- TIME HELPERS (fix for editor) ---
-function esc(s){
-  return String(s ?? "").replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-}
-
-function fmtTime(seconds){
-  const total = Math.max(0, Math.floor(Number(seconds) || 0));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  const mm = String(m).padStart(2,'0');
-  const ss = String(s).padStart(2,'0');
-  return h>0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
-}
-
-
 
   // Keep this fixed for your Firestore rules
   const FINAL_APP_ID = "videoquiz-ultimate-live";
@@ -410,11 +406,11 @@ function fmtTime(seconds){
           <div class="font-black text-lg">${q.title||"Без име"}</div>
           <div class="text-xs font-black text-slate-400 uppercase">${n} въпроса</div>
           <div class="flex gap-2 pt-2 border-t border-slate-100">
-            <button type="button" class="flex-1 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs" onclick="window.startHost('${q.id}')">Старт</button>
-            <button type="button" class="px-3 py-2 rounded-xl bg-slate-100 font-black text-xs" onclick="window.openEditor('${q.id}')">Редакция</button>
-            <button type="button" class="px-3 py-2 rounded-xl bg-rose-50 text-rose-600 font-black text-xs" onclick="window.delLesson('${q.id}')">Изтрий</button>
+            <button class="flex-1 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs" onclick="startHost('${q.id}')">Старт</button>
+            <button class="px-3 py-2 rounded-xl bg-slate-100 font-black text-xs" onclick="openEditor('${q.id}')">Редакция</button>
+            <button class="px-3 py-2 rounded-xl bg-rose-50 text-rose-600 font-black text-xs" onclick="delLesson('${q.id}')">Изтрий</button>
           </div>
-          <button type="button" class="px-3 py-2 rounded-xl bg-amber-50 text-amber-700 font-black text-xs" onclick="window.shareLesson('${q.id}')">Код за самостоятелно</button>
+          <button class="px-3 py-2 rounded-xl bg-amber-50 text-amber-700 font-black text-xs" onclick="shareLesson('${q.id}')">Код за самостоятелно</button>
         </div>`;
     }).join("");
     renderSoloRows();
@@ -458,60 +454,30 @@ function fmtTime(seconds){
   const ytId=(u)=>{const m=(u||"").match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([\w-]{11})/);return m?m[1]:null;};
   const norm=(q)=>{
     if(typeof q.t!=="number") q.t=Number(q.t||q.time||0)||0;
-    if(!q.type) q.type="single";
     if(!Array.isArray(q.options)) q.options=[];
     if(!Array.isArray(q.correct)) q.correct = (typeof q.correct==="number")?[q.correct]:[];
-    // за свободен отговор: приемливи отговори (по желание)
-    if(!Array.isArray(q.accept)){
-      if(typeof q.accept==="string"){
-        q.accept = q.accept.split("|").map(s=>s.trim()).filter(Boolean);
-      } else {
-        q.accept = [];
-      }
-    }
+    if(!q.type) q.type="single";
     q.points = Number(q.points||1)||1;
     return q;
   };
 
   function renderEdQs(){
-    const entries = edQs.map((q,idx)=>({q,idx})).sort((a,b)=>a.q.t-b.q.t);
-    $("edQList").innerHTML = entries.map(({q,idx})=>`
+    $("edQList").innerHTML = edQs.sort((a,b)=>a.t-b.t).map((q,i)=>`
       <div class="card p-4">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
-            <div class="flex items-center gap-2 flex-wrap">
-              <div class="pill">⏱ ${fmtTime(q.t||0)}</div>
-              <div class="pill">${q.type==="open"?"✍️ свободен":q.type==="multiple"?"☑️ множество":q.type==="single"?"🔘 един":q.type==="numeric"?"# число":"✓ вярно/грешно"}</div>
-              <div class="pill">⭐ ${q.points||1}</div>
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-mono font-black text-xs">${fmt(q.t||0)}</span>
+              <span class="text-[10px] uppercase font-black text-slate-400">${q.type} • ${q.points}т</span>
             </div>
-            <div class="font-black mt-2 break-words">${esc(q.text||"")}</div>
-            ${(q.type==="single"||q.type==="multiple") ? `
-              <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-slate-200">
-                ${(q.options||[]).map((o,j)=>o?`<div class="px-3 py-2 rounded-xl bg-white/5 border border-white/10">
-                  <span class="font-black">${String.fromCharCode(65+j)}.</span> ${esc(o)} ${q.correct&&q.correct.includes(j)?'<span class="text-emerald-400 font-black">✓</span>':""}
-                </div>`:"").join("")}
-              </div>
-            `:""}
-            ${q.type==="open" && Array.isArray(q.accept) && q.accept.length ? `<div class="mt-2 text-xs text-slate-400">Приемливи: <span class="text-slate-200">${esc(q.accept.join(" | "))}</span></div>`:""}
+            <div class="mt-2 font-black">${q.text||""}</div>
           </div>
-
-          <div class="flex flex-col gap-2 shrink-0">
-            <button type="button" class="btn btn-secondary" onclick="window.editQ(${idx})"><i data-lucide="pencil" class="w-4 h-4"></i> Редакция</button>
-            <button type="button" class="btn btn-danger" onclick="window.delQ(${idx})"><i data-lucide="trash-2" class="w-4 h-4"></i> Изтрий</button>
+          <div class="flex gap-1">
+            <button class="p-2 rounded-xl hover:bg-slate-100" onclick="playQ(${q.t||0})"><i data-lucide="play" class="w-4 h-4"></i></button>
+            <button class="p-2 rounded-xl hover:bg-rose-50 text-rose-600" onclick="delQ(${i})"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
           </div>
         </div>
-
-        <div class="mt-3 flex items-center gap-2 flex-wrap">
-          <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Време:</div>
-          <button type="button" class="btn btn-secondary" onclick="window.bumpQT(${idx},-0.5)">-0.5s</button>
-          <button type="button" class="btn btn-secondary" onclick="window.bumpQT(${idx},-0.1)">-0.1s</button>
-          <input type="number" step="0.1" value="${Number(q.t||0)}" oninput="window.setQT(${idx}, this.value)" class="w-24 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white font-bold">
-          <button type="button" class="btn btn-secondary" onclick="window.bumpQT(${idx},0.1)">+0.1s</button>
-          <button type="button" class="btn btn-secondary" onclick="window.bumpQT(${idx},0.5)">+0.5s</button>
-          <div class="text-xs text-slate-500">Съвет: за по-точно уцелване – пусни видеото, пауза, после „Редакция“.</div>
-        </div>
-      </div>
-    `).join("") || `<div class="text-slate-400">Няма въпроси още. Натисни „+ Добави въпрос“.</div>`;
+      </div>`).join("");
     icons();
   }
 
@@ -531,7 +497,7 @@ function fmtTime(seconds){
   function initEdPlayer(videoId){
     $("edPlayer").innerHTML='<div id="edYT" class="w-full h-full"></div>';
     edPlayer=new YT.Player("edYT",{videoId,width:"100%",height:"100%",playerVars:{autoplay:0,controls:1,rel:0},
-      events:{onReady:()=>{edTInt=setInterval(()=>{try{$("edTime").textContent=fmtTime(edPlayer.getCurrentTime()||0)}catch(e){}},250);}}});
+      events:{onReady:()=>{edTInt=setInterval(()=>{try{$("edTime").textContent=fmt(edPlayer.getCurrentTime()||0)}catch(e){}},250);}}});
   }
 
   window.loadEditorVideo=()=>{
@@ -542,219 +508,87 @@ function fmtTime(seconds){
 
   // Q Modal
   let modalBase=0;
-  
-// --------- Question Modal (v2 - DOM-safe) ---------
-let editingQIndex = null;
-let mqDraft = null;
+  window.openQModal=()=>{
+    if(!edPlayer||!edVideo) return toast("Първо заредете видео.","error");
+    try{edPlayer.pauseVideo()}catch(e){}
+    $("mqText").value=""; $("mqType").value="single"; $("mqPoints").value=1;
+    modalBase=Math.round(Number(edPlayer.getCurrentTime()||0)*10)/10; $("mqTime").value=modalBase;
+    renderModal();
+    $("qModal").classList.remove("hidden"); $("qModal").classList.add("flex"); icons();
+  };
+  window.closeQModal=()=>{ $("qModal").classList.add("hidden"); $("qModal").classList.remove("flex"); };
+  window.setModalNow=()=>{ modalBase=Math.round(Number(edPlayer.getCurrentTime()||0)*10)/10; $("mqTime").value=modalBase; };
+  window.playFromModal=()=>{ const t=Number($("mqTime").value||0); try{edPlayer.seekTo(t,true);edPlayer.playVideo()}catch(e){} };
 
-function mq$(id){ return document.getElementById(id); }
-
-function getTeacherVideoTime(){
-  try{
-    if(window.tPlayer && typeof window.tPlayer.getCurrentTime==="function") return Number(window.tPlayer.getCurrentTime())||0;
-  }catch(e){}
-  return 0;
-}
-
-function renderModal(){
-  const type = mq$("mqType")?.value || "single";
-  const body = mq$("mqBody");
-  if(!body) return;
-
-  const q = mqDraft || {};
-  const opts = Array.isArray(q.options) ? q.options.slice(0,4) : ["","","",""];
-  while(opts.length<4) opts.push("");
-
-  const correct = q.correct;
-  const accept = Array.isArray(q.accept) ? q.accept.join(" | ") : (typeof q.accept==="string" ? q.accept : "");
-
-  const radioChecked = (i)=> (type==="single" && Number(correct)===i) ? "checked" : "";
-  const cbChecked = (i)=> (type==="multiple" && Array.isArray(correct) && correct.includes(i)) ? "checked" : "";
-  const escV = (v)=> (typeof window.esc==="function" ? window.esc(String(v??"")) : String(v??"").replace(/[&<>"]/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c])));
-
-  if(type==="single" || type==="multiple"){
-    body.innerHTML = `
-      <div class="space-y-3">
-        <div class="text-sm text-slate-400">Отговори</div>
-        ${[0,1,2,3].map(i=>`
-          <div class="flex items-center gap-3">
-            ${type==="single"
-              ? `<input type="radio" name="mqCorrect" value="${i}" class="h-5 w-5" ${radioChecked(i)} />`
-              : `<input type="checkbox" id="mqCorr${i}" class="h-5 w-5" ${cbChecked(i)} />`
-            }
-            <input id="mqOpt${i}" type="text" class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10"
-              placeholder="${["A","B","C","D"][i]}" value="${escV(opts[i])}" />
-          </div>
-        `).join("")}
-        <p class="text-xs text-slate-500">Съвет: при „множествен“ маркирай всички верни.</p>
-      </div>
-    `;
-    return;
-  }
-
-  if(type==="open"){
-    body.innerHTML = `
-      <div class="space-y-3">
-        <div class="text-sm text-slate-400">Свободен отговор</div>
-        <input id="mqAccept" type="text" class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10"
-          placeholder="Приеми като верни (пример: софия | София)" value="${escV(accept)}" />
-        <p class="text-xs text-slate-500">Можеш да въведеш няколко варианта, разделени с <b>|</b>.</p>
-      </div>
-    `;
-    return;
-  }
-
-  if(type==="boolean"){
-    const v = (correct===true || correct==="true") ? "true" : (correct===false || correct==="false") ? "false" : "";
-    body.innerHTML = `
-      <div class="space-y-3">
-        <div class="text-sm text-slate-400">Вярно / Невярно</div>
-        <select id="mqBool" class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10">
-          <option value="">— избери —</option>
-          <option value="true" ${v==="true"?"selected":""}>Вярно</option>
-          <option value="false" ${v==="false"?"selected":""}>Невярно</option>
-        </select>
-      </div>
-    `;
-    return;
-  }
-
-  if(type==="numeric"){
-    const num = (typeof correct==="number" || (typeof correct==="string" && correct.trim()!=="")) ? String(correct) : "";
-    body.innerHTML = `
-      <div class="space-y-3">
-        <div class="text-sm text-slate-400">Числов отговор</div>
-        <input id="mqNum" type="number" step="any" class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10"
-          placeholder="напр. 3.14" value="${escV(num)}" />
-      </div>
-    `;
-    return;
-  }
-
-  body.innerHTML = `<p class="text-sm text-slate-400">Неподдържан тип въпрос.</p>`;
-}
-window.renderModal = renderModal;
-
-window.openQModal = (q=null, idx=null) => {
-  editingQIndex = (typeof idx==="number") ? idx : null;
-  mqDraft = q ? JSON.parse(JSON.stringify(q)) : { t: Math.round(getTeacherVideoTime()*10)/10, type:"single", text:"", options:["","","",""], correct:0, points:1, accept:[] };
-
-  const titleEl = mq$("mqText");
-  const timeEl  = mq$("mqTime");
-  const typeEl  = mq$("mqType");
-  const ptsEl   = mq$("mqPoints");
-
-  if(titleEl) titleEl.value = mqDraft.text || "";
-  if(timeEl)  timeEl.value  = (mqDraft.t ?? 0);
-  if(typeEl)  typeEl.value  = mqDraft.type || "single";
-  if(ptsEl)   ptsEl.value   = (mqDraft.points ?? 1);
-
-  renderModal();
-  if(typeof window.showModal==="function") window.showModal("qModal");
-};
-
-window.setModalNow = () => {
-  const timeEl = mq$("mqTime");
-  if(timeEl) timeEl.value = Math.round(getTeacherVideoTime()*10)/10;
-};
-
-window.playFromModal = () => {
-  try{
-    const t = Number(mq$("mqTime")?.value || 0) || 0;
-    if(window.tPlayer && typeof window.tPlayer.seekTo==="function"){
-      window.tPlayer.seekTo(t, true);
-      if(typeof window.tPlayer.playVideo==="function") window.tPlayer.playVideo();
-    }
-  }catch(e){}
-};
-
-window.closeQModal = () => {
-  if(typeof window.closeModal==="function") window.closeModal("qModal");
-};
-
-window.saveModalQ = () => {
-  const textEl = mq$("mqText");
-  const timeEl = mq$("mqTime");
-  const typeEl = mq$("mqType");
-  const ptsEl  = mq$("mqPoints");
-
-  const qText = (textEl?.value||"").trim();
-  const qTime = Number(timeEl?.value||0) || 0;
-  const qType = (typeEl?.value||"single");
-  const qPts  = Math.max(0, Number(ptsEl?.value||1) || 1);
-
-  if(!qText){
-    if(typeof window.toast==="function") window.toast("Въведи текст на въпроса.", "warn");
-    return;
-  }
-
-  const q = { t: qTime, type: qType, text: qText, points: qPts, options:[], correct:null, accept:[] };
-
-  if(qType==="single" || qType==="multiple"){
-    const opts = [0,1,2,3].map(i=> (mq$("mqOpt"+i)?.value||"").trim());
-    if(opts.filter(Boolean).length < 2){
-      if(typeof window.toast==="function") window.toast("Въведи поне 2 отговора.", "warn");
+  window.renderModal=()=>{
+    const type=$("mqType").value; const b=$("mqBody"); b.innerHTML="";
+    if(type==="numeric"){
+      b.innerHTML=`
+        <div class="grid grid-cols-2 gap-3">
+          <input id="mqMin" type="number" value="0" class="p-3 rounded-xl border-2 border-slate-200 bg-slate-50 font-black" placeholder="Мин">
+          <input id="mqMax" type="number" value="100" class="p-3 rounded-xl border-2 border-slate-200 bg-slate-50 font-black" placeholder="Макс">
+          <input id="mqStep" type="number" value="1" class="p-3 rounded-xl border-2 border-slate-200 bg-slate-50 font-black" placeholder="Стъпка">
+          <input id="mqTol" type="number" value="0" class="p-3 rounded-xl border-2 border-slate-200 bg-slate-50 font-black" placeholder="Толеранс">
+        </div>
+        <input id="mqCorrectNum" type="number" value="0" class="w-full p-3 rounded-xl border-2 border-slate-200 bg-slate-50 font-black" placeholder="Верен отговор">`;
       return;
     }
-    q.options = opts;
+    if(type==="boolean"){
+      b.innerHTML=`
+        <div class="card p-4 bg-slate-50 space-y-2">
+          <div class="font-black">Верен отговор</div>
+          <label class="flex items-center gap-2 font-bold"><input type="radio" name="mqBool" value="true" checked> Вярно</label>
+          <label class="flex items-center gap-2 font-bold"><input type="radio" name="mqBool" value="false"> Грешно</label>
+        </div>`;
+      return;
+    }
+    const isMulti=type==="multiple";
+    b.innerHTML=`
+      <div class="card p-4 bg-slate-50 space-y-3">
+        <div class="font-black">Отговори</div>
+        <div id="mqOpts" class="space-y-2"></div>
+        <div class="border-t border-slate-200 pt-3">
+          <div class="font-black mb-2">Маркирай верен(и)</div>
+          <div id="mqCorrect" class="space-y-2"></div>
+        </div>
+      </div>`;
+    const opts=["Отговор А","Отговор Б","Отговор В","Отговор Г"];
+    $("mqOpts").innerHTML=opts.map((v,i)=>`<input class="w-full p-3 rounded-xl border-2 border-slate-200 bg-white font-bold" data-i="${i}" value="${v}">`).join("");
+    const rebuild=()=>{
+      const os=[...document.querySelectorAll("#mqOpts input")].map(x=>x.value.trim()).filter(Boolean);
+      const t=isMulti?"checkbox":"radio"; const name=isMulti?"":"name='mqSingle'";
+      $("mqCorrect").innerHTML=os.map((o,i)=>`<label class="flex items-center gap-2 font-bold"><input type="${t}" ${name} data-i="${i}"> ${o}</label>`).join("");
+    };
+    document.querySelectorAll("#mqOpts input").forEach(i=>i.addEventListener("input",rebuild)); rebuild();
+  };
 
-    if(qType==="single"){
-      const picked = document.querySelector('input[name="mqCorrect"]:checked');
-      q.correct = picked ? Number(picked.value) : 0;
+  window.saveModalQ=()=>{
+    const text=($("mqText").value||"").trim(); if(!text) return toast("Въведете текст.","error");
+    const type=$("mqType").value; const points=Number($("mqPoints").value||1)||1;
+    const t=Math.max(0,Number($("mqTime").value||0));
+    const q={t:Math.round(t*10)/10,text,type,points};
+    if(type==="numeric"){
+      q.min=Number($("mqMin").value||0); q.max=Number($("mqMax").value||100); q.step=Number($("mqStep").value||1);
+      q.tol=Number($("mqTol").value||0); q.correctNum=Number($("mqCorrectNum").value||0);
+      q.options=[]; q.correct=[];
+    }else if(type==="boolean"){
+      const val=document.querySelector("input[name='mqBool']:checked")?.value==="true";
+      q.options=["Вярно","Грешно"]; q.correct=[val?0:1];
     }else{
-      const corr=[];
-      [0,1,2,3].forEach(i=>{ if(mq$("mqCorr"+i)?.checked) corr.push(i); });
-      if(!corr.length){
-        if(typeof window.toast==="function") window.toast("Маркирай поне един верен отговор.", "warn");
-        return;
-      }
-      q.correct = corr;
-    }
-  }else if(qType==="open"){
-    const acc = (mq$("mqAccept")?.value||"").trim();
-    q.accept = acc ? acc.split("|").map(s=>s.trim()).filter(Boolean) : [];
-    q.correct = null;
-  }else if(qType==="boolean"){
-    const v = mq$("mqBool")?.value || "";
-    if(v!=="true" && v!=="false"){
-      if(typeof window.toast==="function") window.toast("Избери Вярно или Невярно.", "warn");
-      return;
-    }
-    q.correct = (v==="true");
-  }else if(qType==="numeric"){
-    const v = mq$("mqNum")?.value;
-    if(v===null || v===undefined || String(v).trim()===""){
-      if(typeof window.toast==="function") window.toast("Въведи числова стойност.", "warn");
-      return;
-    }
-    q.correct = Number(v);
-    if(Number.isNaN(q.correct)){
-      if(typeof window.toast==="function") window.toast("Невалидно число.", "warn");
-      return;
-    }
-  }
-
-  try{
-    if(window.edQs && Array.isArray(window.edQs)){
-      if(editingQIndex===null){
-        window.edQs.push(q);
+      const os=[...document.querySelectorAll("#mqOpts input")].map(x=>x.value.trim()).filter(Boolean);
+      if(os.length<2) return toast("Поне 2 отговора.","error");
+      q.options=os;
+      if(type==="single"){
+        const s=document.querySelector("#mqCorrect input[type='radio']:checked"); if(!s) return toast("Маркирай верен.","error");
+        q.correct=[Number(s.dataset.i)];
       }else{
-        window.edQs[editingQIndex] = q;
+        const s=[...document.querySelectorAll("#mqCorrect input[type='checkbox']:checked")].map(x=>Number(x.dataset.i));
+        if(!s.length) return toast("Маркирай поне един верен.","error");
+        q.correct=s.sort((a,b)=>a-b);
       }
-      if(typeof window.norm==="function"){
-        window.edQs = window.edQs.map(window.norm).sort((a,b)=>(a.t||0)-(b.t||0));
-      }else{
-        window.edQs.sort((a,b)=>(a.t||0)-(b.t||0));
-      }
-      if(typeof window.renderEdQs==="function") window.renderEdQs();
-      if(typeof window.toast==="function") window.toast("Записано.", "success");
-      window.closeQModal();
     }
-  }catch(e){ console.error(e); }
-};
-// --------- /Question Modal (v2) ---------
-;
-
+    edQs.push(norm(q)); renderEdQs(); closeQModal(); toast("Добавен въпрос.","success");
+  };
 
   window.playQ=(t)=>{ try{edPlayer.seekTo(t,true);edPlayer.playVideo()}catch(e){} };
   window.delQ=(i)=>{ if(!confirm("Изтриване?")) return; edQs.splice(i,1); renderEdQs(); };
@@ -773,41 +607,14 @@ window.saveModalQ = () => {
     }
     toast("Запазено!","success"); show("teacher");
   };
-  window.editQ=(i)=>{ openQModal(i); };
-
-  window.setQT=(i,val)=>{
-    const t = Math.max(0, Number(val)||0);
-    if(!edQs[i]) return;
-    edQs[i].t = Math.round(t*10)/10;
-    renderEdQs();
-  };
-  window.bumpQT=(i,delta)=>{
-    if(!edQs[i]) return;
-    edQs[i].t = Math.max(0, Math.round(((Number(edQs[i].t)||0)+delta)*10)/10);
-    renderEdQs();
-  };
-
 
   // === SOLO PLAY ===
   let soloPlayer=null, soloQuiz=null, soloIdx=-1, soloScore=0, soloMax=0, soloSel=null, sop=false, disc=false, soloName="Анонимен", soloDone=false;
   const maxPts=(qs)=>qs.reduce((a,q)=>a+(Number(q.points||1)||1),0);
   const correct=(q,ans)=>{
-    if(!q) return false;
-    if(q.type==='numeric') return Number(ans)===Number(q.correct?.[0]);
-    if(q.type==='boolean') return Number(ans)===Number(q.correct?.[0]);
-    if(q.type==='open'){
-      const a = String(ans||"").trim().toLowerCase();
-      const acc = Array.isArray(q.accept)? q.accept : [];
-      if(!acc.length) return false; // записваме, но не оценяваме автоматично
-      return acc.map(s=>String(s||"").trim().toLowerCase()).includes(a);
-    }
-    if(q.type==='multiple'){
-      const A=(Array.isArray(ans)?ans:[]).slice().sort().join(',');
-      const B=(Array.isArray(q.correct)?q.correct:[]).slice().sort().join(',');
-      return A===B;
-    }
-    // single
-    return Number(ans)===Number(q.correct?.[0]);
+    if(q.type==="numeric") return Math.abs(Number(ans)-Number(q.correctNum||0))<=Number(q.tol||0);
+    if(q.type==="multiple"){const a=[...(ans||[])].sort((x,y)=>x-y),c=[...(q.correct||[])].sort((x,y)=>x-y);return JSON.stringify(a)===JSON.stringify(c);}
+    return (q.correct||[])[0]===Number(ans);
   };
 
   window.startSolo=async ()=>{
@@ -861,7 +668,7 @@ window.saveModalQ = () => {
       return;
     }
     const list=(q.type==="boolean")?["Вярно","Грешно"]:q.options;
-    o.innerHTML=list.map((x,i)=>`<button type="button" class="btn bg-white/10 border border-white/15 text-white text-left" onclick="window.pickSolo(${i})">${x}</button>`).join("");
+    o.innerHTML=list.map((x,i)=>`<button class="btn bg-white/10 border border-white/15 text-white text-left" onclick="pickSolo(${i})">${x}</button>`).join("");
   }
 
   window.pickSolo=(i)=>{ soloSel=i; $("soloConfirm").classList.remove("hidden"); };
@@ -873,27 +680,9 @@ window.saveModalQ = () => {
   };
 
   window.confirmSolo=async ()=>{
-    const q=soloQuiz.q[soloIdx];
-    let ans=soloSel;
-
+    const q=soloQuiz.q[soloIdx]; let ans=soloSel;
     if(q.type==="numeric") ans=Number(document.getElementById("soloRange").value);
-    if(q.type==="open") ans=String(document.getElementById("soloOpen").value||"").trim();
-
-    const hasAuto = q.type==="open" ? (Array.isArray(q.accept) && q.accept.length>0) : true;
-    const ok = correct(q,ans);
-
-    if(q.type==="open" && !hasAuto){
-      toast("Отговорът е записан (без автоматична оценка).","ok");
-    } else if(ok){
-      soloScore += (Number(q.points||1)||1);
-      toast("Вярно!","success");
-    } else {
-      toast("Грешно…","error");
-    }
-
-    // запис на отговора
-    soloAnswers.push({t:q.t, type:q.type||"single", answer:ans, ok: ok===true });
-
+    if(correct(q,ans)){ soloScore += (Number(q.points||1)||1); toast("Вярно!","success"); } else toast("Грешно…","error");
     $("soloOverlay").classList.add("hidden"); $("soloOverlay").classList.remove("flex");
     try{speechSynthesis.cancel()}catch(e){}
     setTimeout(()=>{try{soloPlayer.playVideo()}catch(e){}},600);
@@ -1049,7 +838,7 @@ window.saveModalQ = () => {
       return;
     }
     const list=(q.type==="boolean")?["Вярно","Грешно"]:q.options;
-    o.innerHTML=list.map((x,i)=>`<button type="button" class="btn bg-white border border-slate-200 w-full text-left" onclick="window.pickClient(${i},this)">${x}</button>`).join("");
+    o.innerHTML=list.map((x,i)=>`<button class="btn bg-white border border-slate-200 w-full text-left" onclick="pickClient(${i},this)">${x}</button>`).join("");
   }
 
   window.pickClient=(i,el)=>{
